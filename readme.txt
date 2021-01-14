@@ -10,10 +10,13 @@ Typical example:
 it generates files labels.csv (kernel parameters set) ts.csv (training set) cs.csv (test set) quant*.txt (classifiers)
 cp quant6000.txt labels.csv cs.csv domain.csv ../predictparams/
 
+2. predictparams : performs classification depending on the number of allowed predictors
 Copy the files above to ./predictparams (results of classification outside of ts)
 
 ./predictparams -i cs.csv -g quant6000.txt -n 20 -c 1
 ./predictparams -i cs.csv -g quant6000.txt -n 10 -c 1
+
+3. learncluster : iterates of previously designed classifiers 
 
 Improvements related with GLVQ (generalized learning vector quantization)
 It is necessary the following files in the learncluster directory
