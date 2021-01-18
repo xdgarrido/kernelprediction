@@ -42,6 +42,8 @@ vector<int> build_vector(string line)
     return(result);
 }
 
+
+
 int main(int argc, char** argv)
 {
     FILE* fd_in = NULL, * fd_out = NULL;
@@ -53,7 +55,6 @@ int main(int argc, char** argv)
     int clustering_type;
     int test_set_size;
     string line, kernel;
-    
     
     // parse program input arguments
     pArgs = &repository;

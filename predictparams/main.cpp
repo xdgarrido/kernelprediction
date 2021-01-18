@@ -259,9 +259,9 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
             {
 #ifndef __AVXACC__
                 float dist = 0.;
-                for (int j = 0; j < normalizezcodes.size()-1; j++)
+                for (int j = 0; j < normalized_codes.size()-1; j++)
                 {
-                    dist += (codebook[i][j] - ncodes[j]) * (codebook[i][j] - ncodes[j]);
+                    dist += (codebook[i][j] - normalized_codes[j]) * (codebook[i][j] - normalized_codes[j]);
                 }
                 Delta_alpha_beta = dist;
 #else 
@@ -304,66 +304,7 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
     return(predicted_codes_set);
 }
 
-vector<vector<int>> multiple_predict_parametersx(vector<vector<float>> codebook, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates)
-{
-    int codebook_size = (int)codebook.size();
-    int codebook_dim = (int)codebook[0].size();
-    int codes_size = (int)codes.size();
-    vector <vector<int>> predicted_codes_set;
-    vector<tuple<float, int>> dist_table(codebook_size);
-    float Delta_alpha_beta = numeric_limits<float>::max();
 
-    for (int i = 0; i < codebook_size; i++)
-    {
-       
-
-#ifndef __AVXACC__
-            float dist = 0.;
-            for (int j = 0; j < normalizezcodes.size() - 1; j++)
-            {
-                dist += (codebook[i][j] - ncodes[j]) * (codebook[i][j] - ncodes[j]);
-            }
-            Delta_alpha_beta = dist;
-#else 
-            // exclude labels from the distortion calculation
-            for (int l = 0; l < normalized_codes.size() - 1; l++)
-            {
-                ya[l] = normalized_codes[l];
-                yi[l] = codebook[i][l];
-            }
-            Delta_alpha_beta = compute_distance(ya, yi);
-#endif
-        dist_table[i] = make_tuple(Delta_alpha_beta, i);
-    }
-
-    sort(dist_table.begin(), dist_table.end());
-
-
-
-
-    for (int k = 0; k < no_of_candidates; k++)
-    {
-        vector<int> predicted_codes;
-        // add original codes
-        int idx = get<1>(dist_table[k]);
-        for (int j = 0; j < separation_idx; j++)
-        {
-            predicted_codes.push_back((int)codes[j]);
-        }
-
-        // add real prediction
-        for (int j = separation_idx; j < codebook_dim; j++)
-        {
-            predicted_codes.push_back((int)codebook[idx][j]);
-        }
-        //if (tunable_is_valid(predicted_codes, predicted_codes))
-        //{
-           predicted_codes_set.push_back(predicted_codes);
-        //}
-    }
-
-    return(predicted_codes_set);
-}
 
 int verify_prediction(vector<vector<int>> predicted_codes, vector<int> codes, int separation_idx, int no_of_candidates)
 {
@@ -558,6 +499,7 @@ vector<vector<float>> fread_codes(string codes_set)
     }
     return codes;
 }
+
 
 int main(int argc, char** argv)
 {

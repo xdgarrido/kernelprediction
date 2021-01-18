@@ -1,5 +1,5 @@
 #include "learning.h"
-
+#define PRECISION_DIGITS 10
 
 vector<float> normalize_codes(vector<float> codes, vector<vector<float>> min_max, bool normalize)
 {
@@ -85,14 +85,13 @@ vector<vector<float>> fread_codes(string codes_set)
 
 void fprint_codes(char* codes_file, vector<vector<float>> codes)
 {
-    ofstream out(codes_file, ofstream::out);
-    out.precision(5);
-
+   
     int codebook_size = (int)codes.size();
 
     if (codebook_size != 0)
     {
-        ofstream out(codes_file);
+        ofstream out(codes_file, ofstream::out);
+        out.precision(PRECISION_DIGITS);
         int no_of_dimensions = (int)codes[0].size();
         for (int i = 0; i < codebook_size - 1; i++)
         {

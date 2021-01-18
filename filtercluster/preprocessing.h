@@ -17,3 +17,4 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
 vector<int> labels_histogram(vector<vector<float>> ts, int idx, int labels_size);
 void  print_codes(char* codes_file, vector<vector<int>> codes);
 void fprint_codes(char* codes_file, vector<vector<float>> codes);
+void fprint_codes_binary(char* codes_file, vector<vector<float>> codes);

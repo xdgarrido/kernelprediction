@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-i cs.csv -g quant6000.txt -n 10 -e 3 -c 10000 -l 0.00005</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i cs.csv -g quant6000.txt -n 10 -e 1 -d 0.5 -c 10000 -l 0.00005 -r 5000</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

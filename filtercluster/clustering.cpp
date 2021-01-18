@@ -26,7 +26,7 @@
  *******************************************************************************/
 
 #include "clustering.h"
-
+#include "parse.h"
 
 #ifdef __AVXACC__
 #ifndef LINUX
@@ -76,14 +76,12 @@ inline float compute_distance(const float* p1, const float* p2)
 
 void print_quant(string codes_file, vector<vector<float>> codes)
 {
-    ofstream out(codes_file, ofstream::out);
-    out.precision(5);
-
     int codebook_size = (int)codes.size();
 
     if (codebook_size != 0)
     {
-        ofstream out(codes_file);
+        ofstream out(codes_file, ofstream::out);
+        out.precision(PRECISION_DIGITS);
         int no_of_dimensions = (int)codes[0].size();
         for (int i = 0; i < codebook_size - 1; i++)
         {
@@ -102,6 +100,28 @@ void print_quant(string codes_file, vector<vector<float>> codes)
         }
         float val = codes[codebook_size - 1][no_of_dimensions - 1];
         out << val;
+        out.close();
+    }
+
+}
+
+void print_quant_binary(string codes_file, vector<vector<float>> codes)
+{
+
+    int codebook_size = (int)codes.size();
+
+    if (codebook_size != 0)
+    {
+        ofstream out(codes_file, ofstream::binary);
+        int no_of_dimensions = (int)codes[0].size();
+        for (int i = 0; i < codebook_size; i++)
+        {
+            for (int j = 0; j < no_of_dimensions; j++)
+            {
+                float val = codes[i][j];
+                out << val;
+            }
+        }
         out.close();
     }
 

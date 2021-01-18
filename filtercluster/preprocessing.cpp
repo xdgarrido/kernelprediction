@@ -25,6 +25,7 @@
  *
  *******************************************************************************/
 #include "preprocessing.h"
+#include "parse.h"
 void find_minmax_normalization(vector<vector<int>> ts, vector<float>& cmin, vector<float>& cmax, vector<float>& inv_cdelta, int label_idx)
 {
     vector<int> vec((int)ts.size());
@@ -85,7 +86,56 @@ vector<int> labels_histogram(vector<vector<float>> ts, int idx, int labels_size)
     }
     return(labels_hist);
 }
+bool isequalLabel(vector<int> label_a, vector<int> label_b)
+{
+    int count = 0;
+    for (int i = 0; i < label_a.size(); i++)
+    {
+        if (label_a[i] != label_b[i])
+            return (false);
+    }
+    return(true);
+}
+int deleteLabelRepeats(vector<vector<int>> &labels)
+{
+    int posUsed = (int) labels.size();
 
+    for (int i = 0; i < posUsed; ++i)
+    {
+        int duplicates = 0;
+        int j = i + 1;
+        // find the first duplicate, if exists
+        vector<int> label_a = labels[i];
+        for (; j < posUsed; ++j)
+        {
+            vector<int> label_b = labels[j];
+            if (isequalLabel(label_a,label_b)) {
+                ++duplicates;
+                break;
+            }
+        }
+        // overwrite the duplicated values moving the rest of the elements...
+        for (int k = j + 1; k < posUsed; ++k)
+        {
+            vector<int> label_b = labels[k];
+            if (!isequalLabel(label_a, label_b))
+            {
+                for (int l = 0; l < (int)labels[0].size(); l++)
+                    labels[j][l] = labels[k][l];
+                ++j;
+            }
+            // ...but skip other duplicates
+            else
+            {
+                ++duplicates;
+            }
+        }
+        posUsed -= duplicates;
+    }
+    // clean up (could be limited to the duplicates only)
+     labels.erase(labels.begin()+posUsed, labels.end());
+    return(posUsed);
+}
 void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<float>>& cs, vector<vector<float>>& cs_norm, int label_idx, vector<vector<int>>& labels, int test_set_size, bool normalize_data, vector<float>& cmin, vector<float>& cmax)
 {
     int gs_size = (int)gs.size();
@@ -94,6 +144,7 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
     std::mt19937 g(rd());
     vector<int> v;
     vector<vector<int>> tmp_labels;
+  
 
 
     for (int i = 0; i < gs_size; i++)
@@ -103,44 +154,12 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
         {
             label.push_back(gs[i][j]);
         }
-        tmp_labels.push_back(label);
+        labels.push_back(label);
     }
-    int labels_size = (int)tmp_labels.size();
-    int labels_dim = (int)tmp_labels[0].size();
+    deleteLabelRepeats(labels);
+    int labels_size = (int)labels.size();
+    int labels_dim = (int)labels[0].size();
 
-    vector<int> replicated_label;
-    for (int i = 0; i < labels_size; i++)
-    {
-        for (int j = i + 1; j < labels_size; j++)
-        {
-            int diff = 0;
-            for (int k = 0; k < labels_dim; k++)
-            {
-                diff += abs(tmp_labels[i][k] - tmp_labels[j][k]);
-            }
-            if (diff == 0)
-            {
-                replicated_label.push_back(j);
-            }
-        }
-    }
-    remove(replicated_label);
-
-    for (int i = 0; i < labels_size; i++)
-    {
-        bool replicated = false;
-        for (int j = 0; j < replicated_label.size(); j++)
-        {
-            if (i == replicated_label[j])
-            {
-                replicated = true;
-            }
-        }
-        if (!replicated)
-        {
-            labels.push_back(tmp_labels[i]);
-        }
-    }
 
     vector<float> inv_cdelta;
 
@@ -159,7 +178,7 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
     for (int i = 0; i < index; i++)
     {
         int id_label = -1;
-        for (int j = 0; j < labels.size(); j++)
+        for (int j = 0; j < labels_size; j++)
         {
             int diff = 0;
             vector<float> val;
@@ -202,7 +221,7 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
     for (int i = index; i < gs_size; i++)
     {
         int id_label = -1;
-        for (int j = 0; j < labels.size(); j++)
+        for (int j = 0; j < labels_size; j++)
         {
             int diff = 0;
             vector<float> val;
@@ -237,9 +256,6 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
 
 void print_codes(char* codes_file, vector<vector<int>> codes)
 {
-    ofstream out(codes_file);
-
-
     int codebook_size = (int)codes.size();
 
     if (codebook_size != 0)
@@ -265,19 +281,17 @@ void print_codes(char* codes_file, vector<vector<int>> codes)
         out << val;
         out.close();
     }
-
 }
 
 void fprint_codes(char* codes_file, vector<vector<float>> codes)
 {
-    ofstream out(codes_file, ofstream::out);
-    out.precision(8);
-
+   
     int codebook_size = (int)codes.size();
 
     if (codebook_size != 0)
     {
-        ofstream out(codes_file);
+        ofstream out(codes_file, ofstream::out);
+        out.precision(PRECISION_DIGITS);
         int no_of_dimensions = (int)codes[0].size();
         for (int i = 0; i < codebook_size - 1; i++)
         {
@@ -296,6 +310,27 @@ void fprint_codes(char* codes_file, vector<vector<float>> codes)
         }
         float val = codes[codebook_size - 1][no_of_dimensions - 1];
         out << val;
+        out.close();
+    }
+
+}
+void fprint_codes_binary(char* codes_file, vector<vector<float>> codes)
+{
+   
+    int codebook_size = (int)codes.size();
+
+    if (codebook_size != 0)
+    {
+        ofstream out(codes_file, ofstream::binary);
+        int no_of_dimensions = (int)codes[0].size();
+        for (int i = 0; i < codebook_size; i++)
+        {
+            for (int j = 0; j < no_of_dimensions; j++)
+            {
+                float val = codes[i][j];
+                out << val;
+            }
+        }
         out.close();
     }
 

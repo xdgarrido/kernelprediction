@@ -196,6 +196,7 @@ void glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vect
         for (int i = 0; i < ts_size; i++)
         {
             learning = step_based_learning(learning_rate, decay, drop_rate, t);
+            //learning=exp_learning(learning_rate, decay,t);
             vector<pair<float, int> > vp;
             vector <float> ts_vector = ts[i];
 
@@ -263,6 +264,7 @@ void glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vect
                             float delta_b = learning * gab * da * (ts_vector[k] - codebook[idxb][k]);
                             codebook[idxa][k] += delta_a;
                             codebook[idxb][k] -= delta_b;
+
                             if (codebook[idxa][k] > 1.0f)
                                 codebook[idxa][k] = 1.0f;
                             else if (codebook[idxa][k] < 0.0f)
@@ -272,6 +274,7 @@ void glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vect
                                 codebook[idxb][k] = 1.0f;
                             else if (codebook[idxb][k] < 0.0f)
                                 codebook[idxb][k] = 0.0f;
+
                         }
                         cost_vector[i] = sgd(mu, 1.f);
                     }
