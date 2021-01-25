@@ -36,6 +36,7 @@ void Usage(char *program_name)
 	cout << "  -m min_max scales file name (ex: domain.csv)" << endl;
 	cout << "  -n number of predictors" << endl;
 	cout << "  -v verbose" << endl;
+	cout << "  -s classifier used (ex: none (euclidian distance, lambdas.csv (weighted euclidian distance), omega.csv (mahalanobis distance) " << endl;
 	cout << "  -c normalized_classifier (1: it is, 0:it isn't)"  << endl;
 	exit(1);
 }
@@ -48,11 +49,13 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	char *cs_name = NULL;
 	char *labels_name = NULL;
 	char *minmax_name = NULL;
-	char* pattern = NULL;
+	char *scales_name = NULL;
+	char *pattern = NULL;
 	// default names
 	const char* cs_array      = "cs.csv";
 	const char* minmax_array  = "domain.csv";
 	const char* lbls_array    = "labels.csv";
+	const char* scales_array  = "none";
 	const char* pattern_array = "1,1,1,1,1,1,0,0";
 	int verbose = 0; 
 	int normalized_codebook = 1;
@@ -125,6 +128,13 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
+		case 's':
+			while (argv[1][nchar] == '\0')
+				nchar++;
+			scales_name = (&argv[1][nchar]);
+			if (nchar > 2) { argv++; argc--; }
+			error = false;
+			break;
 		case '?':
 			while (argv[1][nchar] == '\0')
 				nchar++;
@@ -152,6 +162,12 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 		cs_name = (char*)malloc(sizeof(cs_array));
 		cs_name = (char*)cs_array;
 
+	}
+
+	if (scales_name == NULL)
+	{
+		scales_name = (char*)malloc(sizeof(scales_array));
+		scales_name = (char*)scales_array;
 	}
 	
 	if (minmax_name == NULL)
@@ -181,6 +197,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	p->quant_name = quant_name;
 	p->labels_name = labels_name;
 	p->minmax_name = minmax_name;
+	p->scales_name = scales_name;
 	p->number_of_candidates = number_of_candidates; 
 	p->pattern = pattern;
 	p->verbose = (bool) verbose;

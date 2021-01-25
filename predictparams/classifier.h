@@ -1,3 +1,5 @@
+#pragma once
+
 /*******************************************************************************
  *
  * MIT License
@@ -25,18 +27,24 @@
  *
  *******************************************************************************/
 
-#include<iostream>
-#include<string>
-typedef struct Inputs {
-	char *quant_name;
-	char *minmax_name;
-	char *labels_name;
-	char *scales_name;
-	char *pattern;
-	char *cs_name;
-	int number_of_candidates;
-	bool verbose;
-	bool normalized_codebook;
-} Args_t;
+#include <cstdlib>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <ctime>
+#include <vector>
+#include <tuple>
+#include <algorithm>
+#include <limits>
+#include "parse.h"
+#include <immintrin.h>
+#include <cmath>
+using namespace std;
 
-void ParseArgs(int argc, char *argv[], Args_t *p);
+#define SEP_IDX 15
+vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates);
+vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates);
+vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates);
+void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes);
