@@ -340,7 +340,7 @@ vector<vector<float>> fast_cluster_with_distortion(char* rd_file, vector<vector<
                     codebook[i].push_back(y[i][j]);
                 }
             }
-            string file_name(quant_fname + to_string(number_of_clusters[count]) + ".txt");
+            string file_name(quant_fname + to_string(number_of_clusters[count]) + ".csv");
             print_quant(file_name, codebook);
             count++;
         }
@@ -486,7 +486,7 @@ vector<vector<float>>  cluster_with_distortion(char* rd_file, vector<vector<floa
                         codebook[i].push_back(y[i][j]);
                     }
                 }
-                string file_name(quant_fname + to_string(number_of_clusters[count]) + ".txt");
+                string file_name(quant_fname + to_string(number_of_clusters[count]) + ".csv");
                 print_quant(file_name, codebook);
                 count++;
             }
