@@ -6,17 +6,18 @@ void Usage(char *program_name)
 	cout << "Usage is %s [options]" << program_name << endl;
 	cout << "Options:" << endl;
 	cout << "  -i convolution parameters file name (ex: cs.csv)" << endl;
-	cout << "  -g quantizer file name (ex: quant6000.txt)" << endl;
+	cout << "  -g quantizer file name (ex: quant6000.csv)" << endl;
 	cout << "  -t training set file name (ex: ts.csv)" << endl;
 	cout << "  -m min_max scales file name (ex: domain.csv)" << endl;
 	cout << "  -n number of predictors" << endl;
 	cout << "  -v verbose" << endl;
 	cout << "  -c checkpoint value to report progress (ex: 10000 ) "  << endl;
-	cout << "  -l initial learning rate (ex: 0.00005 ) " << endl;
+	cout << "  -k initial learning rate (ex: 5e-4 ) " << endl;
+	cout << "  -l end learning rate (ex: 5e-7 ) " << endl;
 	cout << "  -d decay for the learning rate " << endl;
 	cout << "  -r drop_rate for the learning rate (ex: 2000)" << endl;
+	cout << "  -f learning rate scheduling function (ex: step_based_learning, exp_learning)" << endl;
 	cout << "  -e number of epochs " << endl;
-	cout << "  -w window, which defnes the midplane between 2 codevectors (used by lvq only) " << endl;
 	exit(1);
 }
 
@@ -28,15 +29,18 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	char *cs_name = NULL;
 	char *ts_name = NULL;
 	char *minmax_name = NULL;
+	char *learning_function = NULL;
 	// default names
 	const char* cs_array      = "cs.csv";
 	const char* minmax_array  = "domain.csv";
 	const char* ts_array      = "ts.csv";
+	const char* default_learning_array = "step_based_learning";
 	int verbose = 0; 
 	bool error = true;
 	int number_of_candidates = 1;
 	float window_distance = 0.3f;
-	float learning_rate = 0.00005f;
+	float learning_rate_start = 0.00005f;
+	float learning_rate_end = 0.0000005f;
 	float decay =0.5f;
 	int drop_rate = 2000;
 	int epochs = 3;
@@ -104,14 +108,6 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 			error = false;
 			break;
 
-		case 'w':
-			while (argv[1][nchar] == '\0')
-				nchar++;
-			window_distance = (float) atof(&argv[1][nchar]);
-			if (nchar > 2) { argv++; argc--; }
-			error = false;
-			break;
-
 		case 'c':
 			while (argv[1][nchar] == '\0')
 				nchar++;
@@ -127,15 +123,31 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
-
-		case 'l':
+		
+		case 'f':
 			while (argv[1][nchar] == '\0')
 				nchar++;
-			learning_rate = (float) atof(&argv[1][nchar]);
+			learning_function = &argv[1][nchar];
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
 
+		case 'k':
+			while (argv[1][nchar] == '\0')
+				nchar++;
+			learning_rate_start = (float) atof(&argv[1][nchar]);
+			if (nchar > 2) { argv++; argc--; }
+			error = false;
+			break;
+
+		case 'l':
+			while (argv[1][nchar] == '\0')
+				nchar++;
+			learning_rate_end = (float) atof(&argv[1][nchar]);
+			if (nchar > 2) { argv++; argc--; }
+			error = false;
+			break;
+        
 		case 'v':
 			while (argv[1][nchar] == '\0')
 				nchar++;
@@ -186,6 +198,13 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 
 	}
 
+	if (learning_function == NULL)
+	{
+		learning_function = (char*)malloc(sizeof(default_learning_array));
+		learning_function = (char*)default_learning_array;
+
+	}
+
 	// write args on data structure
 	p->cs_name = cs_name;
 	p->quant_name = quant_name;
@@ -193,8 +212,9 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	p->minmax_name = minmax_name;
 	p->number_of_candidates = number_of_candidates; 
 	p->verbose = (bool) verbose;
-	p->window_distance = window_distance;
-	p->learning_rate = learning_rate;
+	p->learning_function = learning_function;
+	p->learning_rate_start = learning_rate_start;
+	p->learning_rate_end   = learning_rate_end;
 	p->decay = decay;
 	p->drop_rate = drop_rate;
 	p->epochs = epochs;

@@ -126,6 +126,7 @@ int main(int argc, char** argv)
 {
     FILE* fd_in = NULL;
     Args_t repository, * pArgs;
+    LearningArgs_t learning_params;
     char *fname_quant, *fname_cs, *fname_ts, *fname_minmax;
 
     
@@ -140,12 +141,15 @@ int main(int argc, char** argv)
     fname_ts = pArgs->ts_name;
     fname_cs    = pArgs->cs_name;
     int number_of_candidates = pArgs->number_of_candidates; 
-    float window_distance  = pArgs->window_distance;
-    float learning_rate = pArgs->learning_rate;
-    float decay = pArgs->decay;
-    int drop_rate = pArgs->drop_rate;
-    int epochs = pArgs->epochs;
-    int checkpoint = pArgs->checkpoint;
+    
+    learning_params.learning_rate_start  = pArgs->learning_rate_start;
+    learning_params.learning_rate_end  = pArgs->learning_rate_end;
+    learning_params.decay = pArgs->decay;
+    learning_params.drop_rate = pArgs->drop_rate;
+    learning_params.epochs = pArgs->epochs;
+    learning_params.checkpoint = pArgs->checkpoint;
+    string learning_function(pArgs->learning_function);
+    learning_params.learning_function = learning_function;
 
     string quant_set(fname_quant);
     string ts_set(fname_ts);
@@ -161,9 +165,9 @@ int main(int argc, char** argv)
     // build filename output
 
     string tmp(fname_quant);
-    string pattern = ".txt";
+    string pattern = ".csv";
     removeSubstrs(tmp,pattern);
-    tmp += "_opt.txt";
+    tmp += "_opt.csv";
     const char* fname_optquant = tmp.c_str();
 
 
@@ -176,7 +180,8 @@ int main(int argc, char** argv)
         csn_codes.push_back(ncodes);
     }
 
-    glvq(qs_codes, ts_codes, csn_codes, window_distance, learning_rate, decay, drop_rate, epochs, checkpoint, number_of_candidates);
+    if (glvq(qs_codes, ts_codes, csn_codes, learning_params, number_of_candidates) == -1)
+      return(-1);
     
     fprint_codes((char*)fname_optquant, qs_codes);
   

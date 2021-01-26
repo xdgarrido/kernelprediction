@@ -171,34 +171,63 @@ float step_based_learning(float learning_rate, float decay, int drop_rate, int n
     return(learning);
 }
 
-float exp_learning(float learning_rate, float decay, int n)
+float exp_learning(float learning_rate_start, float learning_rate_end, int epochs, int e)
 {
-    float tmp = -decay * n;
-    float learning = learning_rate * exp(tmp);
+    float tmp = learning_rate_end / learning_rate_start;
+    float exponent = ((float) e) / ((float)epochs);
+    float learning = learning_rate_start * pow(tmp,exponent);
     return(learning);
 }
-void glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vector<float>> cs, float window_distance, float learning_rate, float decay, int drop_rate, int epochs, int checkpoint, int number_of_candidates)
+
+int glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vector<float>> cs, LearningArgs_t params, int number_of_candidates)
 {
     int codebook_size = (int)codebook.size();
     int dim = (int)codebook[0].size();
     int dim_1 = dim - 1;
     int ts_size = (int)ts.size();
-    int final_iter = (int)(epochs * ts_size);
-    int t = 0;
     float Delta_alpha_beta;
-    float learning = learning_rate;
+    std::random_device rd;
+    std::mt19937 g(rd());
+    vector<int> v;
     float cost = (float)ts_size;
     vector<float> cost_vector(ts_size);
     fill(cost_vector.begin(), cost_vector.end(), 1.f);
 
-    while (t < final_iter)
+    // set learning parameters
+    float learning_rate_start = params.learning_rate_start;
+    float learning_rate_end = params.learning_rate_end;
+    float learning_decay = params.decay;
+    int checkpoint = params.checkpoint;
+    int learning_drop_rate = params.drop_rate;
+    int epochs = params.epochs; 
+    int final_iter = (int)(epochs * ts_size);
+    float learning;
+
+    for (int i = 0; i < ts_size; i++)
     {
+        v.push_back(i);
+    }
+
+    int t = 0;
+    for (int e = 0; e < epochs; e++)
+    {  
+        shuffle(v.begin(), v.end(), g);;
+        
         for (int i = 0; i < ts_size; i++)
         {
-            learning = step_based_learning(learning_rate, decay, drop_rate, t);
-            //learning=exp_learning(learning_rate, decay,t);
+            if (params.learning_function == "step_based_learning")
+                learning = step_based_learning(learning_rate_start, learning_decay, learning_drop_rate, t);
+            else if (params.learning_function == "exp_learning")
+                learning = exp_learning(learning_rate_start,learning_rate_end,epochs,e);
+            else
+            { 
+                cout << "learning method not found!" << endl;
+                return(-1);
+            }
+
+
             vector<pair<float, int> > vp;
-            vector <float> ts_vector = ts[i];
+            vector <float> ts_vector = ts[v[i]];
 
             for (int j = 0; j < codebook_size; j++)
             {
@@ -206,14 +235,14 @@ void glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vect
                 // same class
 #ifndef __AVXACC__
                 float dist = 0.;
-                for (int k = 0; k < dim - 1; k++)
+                for (int k = 0; k < dim_1; k++)
                 {
                     dist += (codebook[j][k] - ts_vector[k]) * (codebook[j][k] - ts_vector[k]);
                 }
                 Delta_alpha_beta = dist;
 #else 
                     // exclude labels from the distortion calculation
-                for (int k = 0; k < dim - 1; k++)
+                for (int k = 0; k < dim_1; k++)
                 {
                     y_a[k] = ts_vector[k];
                     y_b[k] = codebook[j][k];
@@ -225,69 +254,46 @@ void glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vect
             }
             sort(vp.begin(), vp.end());
 
-            float da = vp[0].first;
-            int idxa = vp[0].second;
-            int labela = (int)codebook[idxa][dim_1];
-            float db = vp[1].first;
-            int idxb = vp[1].second;
-            int labelb = (int)codebook[idxb][dim_1];
-            // data label from ts 
             int datalabel = (int)ts_vector[dim_1];
-            //update weights 
+            int count = 0;
+            int idxa = vp[count].second;
+            while (idxa != datalabel)
+            {
+                count++;
+                idxa = vp[count].second;
+            }
+            float da = vp[count].first;
 
+            count = 0;
+            int idxb = vp[count].second;
+            while (idxb == datalabel)
+            {
+                count++;
+                idxb = vp[count].second;
+            }
+            float db = vp[count].first;
 
+            float mu = ((da - db) / (da + db));
+            float gab = 4.f / ((da + db) * (da + db));
+            gab = gab * swish_prime(mu,2.0);
 
-            if ((da != 0.f) || (db != 0.f))
-                if (labela != labelb)
-                {
-                    if ((labela == datalabel) || (labelb == datalabel))
-                    {
-
-                        if (labelb == datalabel)
-                        {
-                            int ntmp = idxa;
-                            idxa = idxb;
-                            idxb = ntmp;
-
-                            float tmp = da;
-                            da = db;
-                            db = tmp;
-                        }
-
-                        float mu = ((da - db) / (da + db));
-                        float gab = 1.f / ((da + db) * (da + db));
-                        gab = gab * sgd_prime(mu, 1.f);
-
-                        for (int k = 0; k < dim - 1; k++)
-                        {
-                            float delta_a = learning * gab * db * (ts_vector[k] - codebook[idxa][k]);
-                            float delta_b = learning * gab * da * (ts_vector[k] - codebook[idxb][k]);
-                            codebook[idxa][k] += delta_a;
-                            codebook[idxb][k] -= delta_b;
-
-                            if (codebook[idxa][k] > 1.0f)
-                                codebook[idxa][k] = 1.0f;
-                            else if (codebook[idxa][k] < 0.0f)
-                                codebook[idxa][k] = 0.0f;
-
-                            if (codebook[idxb][k] > 1.0f)
-                                codebook[idxb][k] = 1.0f;
-                            else if (codebook[idxb][k] < 0.0f)
-                                codebook[idxb][k] = 0.0f;
-
-                        }
-                        cost_vector[i] = sgd(mu, 1.f);
-                    }
-                }
-
+            for (int k = 0; k < dim_1; k++)
+            {
+              float delta_a = learning * gab * db * (ts_vector[k] - codebook[idxa][k]);
+              float delta_b = learning * gab * da * (ts_vector[k] - codebook[idxb][k]);
+              codebook[idxa][k] += delta_a;
+              codebook[idxb][k] -= delta_b;
+            }
+            cost_vector[i] = swish(mu,2.);
 
             //cout << "[iter=" << iter << "]" << '%t';
             if ((t % checkpoint) == 0)
             {
                 cout << "[iter=" << t << "]";
+                cout << "[epoch=" << e << "]";
                 cout << endl << "learning_rate =" << learning << endl;
-                float accuracy = calculate_accuracy(codebook, cs, number_of_candidates);
-                cout << "accuracy  =" << accuracy << endl;
+                float accuracy = calculate_accuracy(codebook, ts, number_of_candidates);
+                cout << "ts accuracy  =" << accuracy << endl;
                 cost = calc_cost(cost_vector);
                 cout << "cost =" << cost << endl;
 
@@ -295,105 +301,6 @@ void glvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vect
             t++;
         }
     }
-
+return(0);
 }
 
-void lvq(vector<vector<float>>& codebook, vector<vector<float>> ts, vector<vector<float>> cs, float window_distance, float learning_rate, float decay, int drop_rate, int epochs, int checkpoint, int number_of_candidates)
-{
-    int codebook_size = (int)codebook.size();
-    int dim = (int)codebook[0].size();
-    int dim_1 = dim - 1;
-    int ts_size = (int)ts.size();
-    int final_iter = (int)(epochs * ts_size);
-    int t = 0;
-    float Delta_alpha_beta;
-    float learning = learning_rate;
-
-    while (t < final_iter)
-    {
-        for (int i = 0; i < ts_size; i++)
-        {
-            learning = step_based_learning(learning_rate, decay, ts_size, t);
-            vector<pair<float, int> > vp;
-            vector <float> ts_vector = ts[i];
-
-            for (int j = 0; j < codebook_size; j++)
-            {
-
-                // same class
-#ifndef __AVXACC__
-                float dist = 0.;
-                for (int k = 0; k < dim - 1; k++)
-                {
-                    dist += (codebook[j][k] - ts_vector[k]) * (codebook[j][k] - ts_vector[k]);
-                }
-                Delta_alpha_beta = dist;
-#else 
-                    // exclude labels from the distortion calculation
-                for (int k = 0; k < dim - 1; k++)
-                {
-                    y_a[k] = ts_vector[k];
-                    y_b[k] = codebook[j][k];
-                }
-                Delta_alpha_beta = compute_distance(y_a, y_b);
-#endif
-                vp.push_back(make_pair(Delta_alpha_beta, j));
-
-            }
-            sort(vp.begin(), vp.end());
-
-            float da = vp[0].first;
-            int idxa = vp[0].second;
-            int labela = (int)codebook[idxa][dim_1];
-            float db = vp[1].first;
-            int idxb = vp[1].second;
-            int labelb = (int)codebook[idxb][dim_1];
-            int datalabel = (int)ts_vector[dim_1];
-            //update weights 
-
-            if (labela != labelb)
-            {
-                if ((labela == datalabel) || (labelb == datalabel))
-                {
-                    if ((da / db) > ((1 - window_distance) / (1 + window_distance)))
-                    {
-                        if (labelb == datalabel)
-                        {
-                            int ntmp = idxa;
-                            idxa = idxb;
-                            idxb = ntmp;
-                        }
-                        for (int k = 0; k < dim - 1; k++)
-                        {
-                            float delta_a = learning * (ts_vector[k] - codebook[idxa][k]);
-                            float delta_b = learning * (ts_vector[k] - codebook[idxb][k]);
-                            codebook[idxa][k] += delta_a;
-                            codebook[idxb][k] -= delta_b;
-                            if (codebook[idxa][k] > 1.0f)
-                                codebook[idxa][k] = 1.0f;
-                            else if (codebook[idxa][k] < 0.0f)
-                                codebook[idxa][k] = 0.0f;
-                            if (codebook[idxb][k] > 1.0f)
-                                codebook[idxb][k] = 1.0f;
-                            else if (codebook[idxb][k] < 0.0f)
-                                codebook[idxb][k] = 0.0f;
-                        }
-                    }
-                }
-            }
-
-
-            //cout << "[iter=" << iter << "]" << '%t';
-            if ((t % checkpoint) == 0)
-            {
-                cout << "[iter=" << t << "]";
-                cout << endl << "learning_rate =" << learning << endl;
-                float accuracy = calculate_accuracy(codebook, cs, number_of_candidates);
-                cout << "accuracy  =" << accuracy << endl;
-
-            }
-            t++;
-        }
-    }
-
-}
