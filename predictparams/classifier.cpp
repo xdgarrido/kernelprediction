@@ -1,6 +1,6 @@
 
 #include "classifier.h"
-
+#define min(a,b) ((a)<(b)?(a):(b))
 
 #ifdef __AVXACC__
 #ifndef LINUX 
@@ -230,14 +230,38 @@ bool tunable_is_valid(vector<int> vec, vector<int> par)
     }
     return true;
 }
+void remove(vector<tuple<float, int, int> > & v)
+{
+    
+    for (int i = 0; i < v.size(); i++)
+    {
+        vector<int> equals;
+        for (int j = i+1; j < v.size(); j++)
+        {
 
-vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates)
+            if (get<2>(v[i]) == get<2>(v[j]))
+            {
+                equals.push_back(j);
+            }
+        }
+        for (int k = 0; k < equals.size(); k++)
+        {
+            v.erase(v.begin() + equals[k]);
+            for (int l = k + 1; l < equals.size(); l++)
+            {
+                equals[l] -= 1;
+            }
+            
+        }
+    }    
+}
+vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
     int codes_size = (int)codes.size();
     vector <vector<int>> predicted_codes_set;
-    vector<tuple<float, int>> dist_table(codebook_size);
+    vector<tuple<float, int, int>> dist_table;
     float Delta_alpha_beta = numeric_limits<float>::max();
 
     for (int i = 0; i < codebook_size; i++)
@@ -266,17 +290,21 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
             }
             Delta_alpha_beta = compute_distance(ya, yi);
 #endif
+            int label = quant_labels[i];
+            dist_table.push_back(make_tuple(Delta_alpha_beta, i, label));
         }
         else
         {
             Delta_alpha_beta = numeric_limits<float>::max();
         }
-        dist_table[i] = make_tuple(Delta_alpha_beta, i);
     }
-
     sort(dist_table.begin(), dist_table.end());
+    //  remove duplicates in terms of labels
+    remove(dist_table);
 
-    for (int k = 0; k < no_of_candidates; k++)
+    int candidates = min(no_of_candidates,dist_table.size());
+
+    for (int k = 0; k < candidates; k++)
     {
         vector<int> predicted_codes;
         // add original codes
@@ -297,13 +325,13 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
     return(predicted_codes_set);
 }
 
-vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates)
+vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
     int codes_size = (int)codes.size();
     vector <vector<int>> predicted_codes_set;
-    vector<tuple<float, int>> dist_table(codebook_size);
+    vector<tuple<float, int, int>> dist_table;
     float Delta_alpha_beta = numeric_limits<float>::max();
     vector<float> lambda_square_root(lambdas[0].size());
     for (int i = 0; i < lambdas[0].size(); i++)
@@ -337,17 +365,22 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
             }
             Delta_alpha_beta = compute_distance(ya, yi);
 #endif
+            int label = quant_labels[i];
+            dist_table.push_back(make_tuple(Delta_alpha_beta, i, label));
         }
         else
         {
             Delta_alpha_beta = numeric_limits<float>::max();
         }
-        dist_table[i] = make_tuple(Delta_alpha_beta, i);
     }
 
     sort(dist_table.begin(), dist_table.end());
+    //  remove duplicates in terms of labels
+    remove(dist_table);
 
-    for (int k = 0; k < no_of_candidates; k++)
+    int candidates = min(no_of_candidates,dist_table.size());
+
+    for (int k = 0; k < candidates; k++)
     {
         vector<int> predicted_codes;
         // add original codes
@@ -381,13 +414,13 @@ vector<float> matvec_mutiply(vector<vector<float>> M, vector<float> x)
     }
     return(y);
 }
-vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates)
+vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
     int codes_size = (int)codes.size();
     vector <vector<int>> predicted_codes_set;
-    vector<tuple<float, int>> dist_table(codebook_size);
+    vector<tuple<float, int, int>> dist_table;
     float Delta_alpha_beta = numeric_limits<float>::max();
     vector<vector<float>> omegas_t(omegas.size(), vector<float>(omegas[0].size()));
 
@@ -450,17 +483,22 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
             }
             Delta_alpha_beta = dist;
 #endif 
+        int label = quant_labels[i];
+        dist_table.push_back(make_tuple(Delta_alpha_beta, i, label));
         }
         else
         {
             Delta_alpha_beta = numeric_limits<float>::max();
         }
-        dist_table[i] = make_tuple(Delta_alpha_beta, i);
     }
 
     sort(dist_table.begin(), dist_table.end());
+    //  remove duplicates in terms of labels
+    remove(dist_table);
 
-    for (int k = 0; k < no_of_candidates; k++)
+    int candidates = min(no_of_candidates,dist_table.size());
+
+    for (int k = 0; k < candidates; k++)
     {
         vector<int> predicted_codes;
         // add original codes

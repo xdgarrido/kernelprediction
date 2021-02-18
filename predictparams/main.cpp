@@ -257,6 +257,7 @@ int main(int argc, char** argv)
     vector<vector<float>> qs_codes = fread_codes(quant_set);
     vector<vector<float>> cs_codes = fread_codes(cs_set);
     vector<vector<float>> labels   = fread_codes(labels_set);
+    vector<int> quant_labels;
 
     int distance_type;
     if (scales_set == "none")
@@ -287,6 +288,8 @@ int main(int argc, char** argv)
         {
             codes.push_back(qs_codes[i][j]);
         }
+        quant_labels.push_back(qs_codes[i][qs_codes[0].size()-1]);
+
 
          vector<float> codes_complete = expand_codebook(codes, pattern, labels);
          exqs_codes.push_back(codes_complete);
@@ -314,13 +317,13 @@ int main(int argc, char** argv)
         switch (distance_type)
         {
         case VQ:
-            predicted_codes = multiple_predict_parameters(exqs_codes, ncodes, codes_complete, SEP_IDX, number_of_candidates);
+            predicted_codes = multiple_predict_parameters(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, number_of_candidates);
             break;
         case GRLVQ:
-            predicted_codes = multiple_predict_parameters_lambdas(exqs_codes, ncodes, codes_complete, SEP_IDX, lambdas, number_of_candidates);
+            predicted_codes = multiple_predict_parameters_lambdas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, lambdas, number_of_candidates);
             break;
         case GMLVQ:
-            predicted_codes = multiple_predict_parameters_omegas(exqs_codes, ncodes, codes_complete, SEP_IDX, omegas, number_of_candidates);
+            predicted_codes = multiple_predict_parameters_omegas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, omegas, number_of_candidates);
             break;
         default:
             cout << "invalid selection" << endl;
