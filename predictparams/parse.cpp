@@ -31,7 +31,7 @@ void Usage(char *program_name)
 	cout << "Usage is %s [options]" << program_name << endl;
 	cout << "Options:" << endl;
 	cout << "  -i convolution parameters file name (ex: cs.csv)" << endl;
-	cout << "  -g quantizer file name (ex: quant6000.txt)" << endl;
+	cout << "  -g quantizer file name (ex: quant6000.csv)" << endl;
 	cout << "  -l labels file name (ex: labels.csv)" << endl;
 	cout << "  -m min_max scales file name (ex: domain.csv)" << endl;
 	cout << "  -n number of predictors" << endl;
