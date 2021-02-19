@@ -234,6 +234,16 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
             val.push_back((float)cs[i][label_idx]);
             cs_norm.push_back(val);
         }
+        for (int i = 0; i < (int)ts.size(); i++)
+        {
+            for (int j = 0; j < label_idx; j++)
+            {
+                float c = (float)ts[i][j];
+                float c_norm = (c - cmin[j]) * inv_cdelta[j];
+                ts[i][j] = c_norm;
+            }
+        }
+        
     }
 
 }
