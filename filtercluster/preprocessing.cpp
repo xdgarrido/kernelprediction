@@ -144,6 +144,7 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
     std::mt19937 g(rd());
     vector<int> v;
     vector<vector<int>> tmp_labels;
+    vector<vector<float>> gs_local;
   
 
 
@@ -165,17 +166,13 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
 
     find_minmax_normalization(gs, cmin, cmax, inv_cdelta, label_idx);
 
-
     for (int i = 0; i < gs_size; i++)
     {
         v.push_back(i);
     }
 
     shuffle(v.begin(), v.end(), g);
-
-    int index = test_set_size;
-
-    for (int i = 0; i < index; i++)
+    for (int i = 0; i < gs_size; i++)
     {
         int id_label = -1;
         for (int j = 0; j < labels_size; j++)
@@ -195,58 +192,47 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
                     val.push_back(c);
                 }
                 val.push_back((float)id_label);
-                cs.push_back(val);
+                gs_local.push_back(val);
                 break;
             }
+        }
+    }
+
+
+    vector<int> hist = labels_histogram(gs_local, label_idx, labels_size);
+
+    int index = test_set_size;
+    int count = 0;
+    for (int i = 0; i < gs_size; i++)
+    {
+        int  label = (int) gs_local[i][label_idx];
+
+        if ((count < index) && (hist[label] > 1))
+        {
+            cs.push_back(gs_local[i]);
+            hist[label] -= 1;
+            count++;
+        }
+        else
+        {
+            ts.push_back(gs_local[i]);
         }
     }
 
     if (normalize_data)
     {
-        for (int i = 0; i < (int) cs.size(); i++)
+        for (int i = 0; i < (int)cs.size(); i++)
         {
             int id_label = -1;
             vector<float> val;
             for (int j = 0; j < label_idx; j++)
             {
-            float c = (float)cs[i][j];
-            float c_norm = (c - cmin[j]) * inv_cdelta[j];
-            val.push_back(c_norm);
+                float c = (float)cs[i][j];
+                float c_norm = (c - cmin[j]) * inv_cdelta[j];
+                val.push_back(c_norm);
             }
             val.push_back((float)cs[i][label_idx]);
             cs_norm.push_back(val);
-        }
-    }
-
-    for (int i = index; i < gs_size; i++)
-    {
-        int id_label = -1;
-        for (int j = 0; j < labels_size; j++)
-        {
-            int diff = 0;
-            vector<float> val;
-            for (int k = 0; k < labels_dim; k++)
-            {
-                diff += (int)abs(gs[v[i]][k + label_idx] - labels[j][k]);
-            }
-            if (diff == 0)
-            {
-                id_label = j;
-                for (int k = 0; k < label_idx; k++)
-                {
-                    float c = (float)gs[v[i]][k];
-                    if (normalize_data)
-                    {
-                        float c_norm = (c - cmin[k]) * inv_cdelta[k];
-                        val.push_back(c_norm);
-                    }
-                    else
-                        val.push_back(c);
-                }
-                val.push_back((float)id_label);
-                ts.push_back(val);
-                break;
-            }
         }
     }
 

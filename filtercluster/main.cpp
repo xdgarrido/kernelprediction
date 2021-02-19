@@ -162,16 +162,16 @@ int main(int argc, char** argv)
 
 
     // collect histogram of classes available in the training set
-    vector<int> hist_quant = labels_histogram(codebook, label_idx, (int)labels.size());
+    vector<int> hist_quant = labels_histogram(ts_codes, label_idx, (int)labels.size());
 
     ofstream hist(fname_hist);
     // record quantizer histogram 
 
-    for (int i=0; i < (int)labels.size(); i++)
+    for (int i=0; i < (int)labels.size()-1; i++)
     {
         hist << hist_quant[i] << endl;
     }
-       
+    hist << hist_quant[(int)labels.size() - 1];
    
     return 0;
 }

@@ -18,4 +18,4 @@ typedef struct Inputs {
 	int test_set_size;
 } Args_t;
 void ParseArgs(int argc, char *argv[], Args_t *p);
-#define PRECISION_DIGITS 10
+#define PRECISION_DIGITS 16
