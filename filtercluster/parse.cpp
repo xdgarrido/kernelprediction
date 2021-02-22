@@ -37,7 +37,7 @@ void Usage(char *program_name)
 	cout << "  -v verbose" << endl;
 	cout << "  -n number of clusters " << endl;
 	cout << "  -f 0: naive pnn 1: fast pnn " << endl;
-	cout << "  -m 0: do not apply normalization 1: apply min-max normalization" << endl;
+	cout << "  -m 0: do not apply normalization 1: apply min-max normalization 2: apply z-score normalization" << endl;
 	cout << "  -p number of clusters used for the cs set" << endl;
 	cout << "  -s start index representing dimensions to be removed from input data" << endl;
 	cout << "  -e end index representing dimensions to be removed from input data" << endl;
@@ -57,7 +57,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	int label_idx = 5;
 	int test_set_size = 1000; 
 	bool error = true;
-	int normalize_data= 1;
+	int normalize_data= 1; // min-max by default 
 	char nchar = 2;
 	const char* cs_array = "cs.csv";
 	const char* cs_norm_array = "cs_norm.csv";
@@ -243,7 +243,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	p->label_idx = label_idx;
 	p->test_set_size = test_set_size;
 	p->verbose = (bool) verbose;
-	p->normalize_data = (bool) normalize_data;
+	p->normalize_data = normalize_data;
 	p->number_of_clusters = no_of_clusters;
 	p->clustering_type = clustering_type;	
 }

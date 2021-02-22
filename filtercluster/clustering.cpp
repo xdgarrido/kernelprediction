@@ -340,6 +340,13 @@ vector<vector<float>> fast_cluster_with_distortion(char* rd_file, vector<vector<
                     codebook[i].push_back(y[i][j]);
                 }
             }
+
+            sort(codebook.begin(), codebook.end(),
+            [](const std::vector<float>& x, const std::vector<float>& y) 
+            { 
+               int pivot = x.size()-1; // label index
+               return x[pivot] < y[pivot];
+            });
             string file_name(quant_fname + to_string(number_of_clusters[count]) + ".csv");
             print_quant(file_name, codebook);
             count++;

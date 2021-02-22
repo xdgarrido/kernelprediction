@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     int label_idx = pArgs->label_idx;
 
     // normalize the data points
-    bool normalize_data = pArgs->normalize_data;
+    int normalize_data = pArgs->normalize_data;
 
     string scope_set(fname_in);
     ifstream scope(scope_set);
@@ -137,22 +137,25 @@ int main(int argc, char** argv)
          gs_codes.push_back(codes);
        
     }
-    vector<float> cmin, cmax;
-    splitgs(gs_codes, ts_codes, cs_codes, cs_norm_codes, label_idx, labels, test_set_size, normalize_data, cmin, cmax);
+    vector<float> val1, val2;
+    splitgs(gs_codes, ts_codes, cs_codes, cs_norm_codes, label_idx, labels, test_set_size, normalize_data, val1, val2);
 
     fprint_codes(fname_cs, cs_codes);
-    if (normalize_data)
+    if (normalize_data >= 1)
         fprint_codes(fname_cs_norm, cs_norm_codes);
     fprint_codes(fname_ts, ts_codes);
     print_codes(fname_lbls, labels);
 
-    ofstream clustering_domain(fname_clustering_domain);
-    for (int i = 0; i < label_idx - 1; i++)
+    if (normalize_data >= 1)
     {
-        clustering_domain << cmin[i] << "," << cmax[i] << endl;
+        ofstream clustering_domain(fname_clustering_domain);
+        clustering_domain.precision(PRECISION_DIGITS);
+        for (int i = 0; i < label_idx - 1; i++)
+        {
+            clustering_domain << val1[i] << "," << val2[i] << endl;
+        }
+        clustering_domain << val1[label_idx - 1] << "," << val2[label_idx - 1];
     }
-    clustering_domain << cmin[label_idx - 1] << "," << cmax[label_idx - 1];
-   
     vector<vector<float>>  codebook;
      
     if (clustering_type == 1)

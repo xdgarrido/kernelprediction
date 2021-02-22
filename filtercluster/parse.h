@@ -14,7 +14,7 @@ typedef struct Inputs {
 	int  label_idx;
 	bool verbose;
 	bool no_clustering;
-	bool normalize_data;
+	int normalize_data;
 	int test_set_size;
 } Args_t;
 void ParseArgs(int argc, char *argv[], Args_t *p);

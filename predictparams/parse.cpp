@@ -33,7 +33,8 @@ void Usage(char *program_name)
 	cout << "  -i convolution parameters file name (ex: cs.csv)" << endl;
 	cout << "  -g quantizer file name (ex: quant6000.csv)" << endl;
 	cout << "  -l labels file name (ex: labels.csv)" << endl;
-	cout << "  -m min_max scales file name (ex: domain.csv)" << endl;
+	cout << "  -m normaization scales file name (ex: domain.csv)" << endl;
+	cout << "  -c 0: do not apply normalization 1: apply min-max normalization 2: apply z-score normalization" << endl;
 	cout << "  -n number of predictors" << endl;
 	cout << "  -v verbose" << endl;
 	cout << "  -s classifier used (ex: none (euclidian distance, lambdas.csv (weighted euclidian distance), omega.csv (mahalanobis distance) " << endl;
@@ -48,7 +49,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	char *quant_name=NULL;
 	char *cs_name = NULL;
 	char *labels_name = NULL;
-	char *minmax_name = NULL;
+	char *norm_name = NULL;
 	char *scales_name = NULL;
 	char *pattern = NULL;
 	// default names
@@ -58,7 +59,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	const char* scales_array  = "none";
 	const char* pattern_array = "1,1,1,1,1,1,0,0";
 	int verbose = 0; 
-	int normalized_codebook = 1;
+	int normalized_codebook = 1; // min-max as default
 	bool error = true;
 	int number_of_candidates = 1;
 	char nchar = 2;
@@ -96,7 +97,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 		case 'm':
 			while (argv[1][nchar] == '\0')
 				nchar++;
-			minmax_name = &argv[1][nchar];
+			norm_name = &argv[1][nchar];
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
@@ -170,10 +171,10 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 		scales_name = (char*)scales_array;
 	}
 	
-	if (minmax_name == NULL)
+	if (norm_name == NULL)
 	{
-		minmax_name = (char*)malloc(sizeof(minmax_array));
-		minmax_name = (char*)minmax_array;
+		norm_name = (char*)malloc(sizeof(minmax_array));
+		norm_name = (char*)minmax_array;
 
 	}
 
@@ -196,11 +197,11 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	p->cs_name = cs_name;
 	p->quant_name = quant_name;
 	p->labels_name = labels_name;
-	p->minmax_name = minmax_name;
+	p->norm_name = norm_name;
 	p->scales_name = scales_name;
 	p->number_of_candidates = number_of_candidates; 
 	p->pattern = pattern;
 	p->verbose = (bool) verbose;
-	p->normalized_codebook = (bool)normalized_codebook;
+	p->normalized_codebook = normalized_codebook;
 	
 }

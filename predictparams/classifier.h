@@ -47,4 +47,3 @@ using namespace std;
 vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates);
 vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates);
 vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates);
-void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes);

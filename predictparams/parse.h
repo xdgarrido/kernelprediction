@@ -29,14 +29,14 @@
 #include<string>
 typedef struct Inputs {
 	char *quant_name;
-	char *minmax_name;
+	char *norm_name;
 	char *labels_name;
 	char *scales_name;
 	char *pattern;
 	char *cs_name;
 	int number_of_candidates;
 	bool verbose;
-	bool normalized_codebook;
+	int normalized_codebook;
 } Args_t;
 
 void ParseArgs(int argc, char *argv[], Args_t *p);

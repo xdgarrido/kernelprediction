@@ -60,6 +60,42 @@ void find_minmax_normalization(vector<vector<int>> ts, vector<float>& cmin, vect
     }
 }
 
+void find_zscore_normalization(vector<vector<int>> ts, vector<float>& mu, vector<float>& sigma, vector<float> &inv_sigma, int label_idx)
+{
+    vector<float> vec((int)ts.size());
+    vector<float>  mu_col(label_idx);
+    vector<float>  sigma_col(label_idx);
+    vector<float>  inv_sigma_col(label_idx);
+
+    for (int j = 0; j < label_idx; j++)
+    {
+        float mean = 0.f;
+        for (int i = 0; i < (int)ts.size(); i++)
+        {
+            vec[i] = ts[i][j];
+            mean += vec[i];
+        }
+        mean = mean/((float)ts.size());
+        float sigma2 = 0;
+
+        for (int i = 0; i < (int)ts.size(); i++)
+        {
+            sigma2 += (vec[i] - mean) * (vec[i] - mean);
+        }
+        sigma2 = sigma2/((float)ts.size());
+        float sigma = sqrt(sigma2);
+        mu_col[j]    = mean;
+        sigma_col[j] = sigma;
+        inv_sigma_col[j] = 1./sigma;
+    }
+
+    for (int j = 0; j < label_idx; j++)
+    {
+        mu.push_back(mu_col[j]);
+        sigma.push_back(sigma_col[j]);
+        inv_sigma.push_back(inv_sigma_col[j]);
+    }
+}
 
 void remove(std::vector<int>& v)
 {
@@ -136,7 +172,7 @@ int deleteLabelRepeats(vector<vector<int>> &labels)
      labels.erase(labels.begin()+posUsed, labels.end());
     return(posUsed);
 }
-void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<float>>& cs, vector<vector<float>>& cs_norm, int label_idx, vector<vector<int>>& labels, int test_set_size, bool normalize_data, vector<float>& cmin, vector<float>& cmax)
+void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<float>>& cs, vector<vector<float>>& cs_norm, int label_idx, vector<vector<int>>& labels, int test_set_size, int normalize_data, vector<float>& val1, vector<float>& val2)
 {
     int gs_size = (int)gs.size();
     int gs_dim = (int)gs[0].size();
@@ -162,10 +198,13 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
     int labels_dim = (int)labels[0].size();
 
 
-    vector<float> inv_cdelta;
+    vector<float> inv_val;
 
-    find_minmax_normalization(gs, cmin, cmax, inv_cdelta, label_idx);
-
+    if (normalize_data == 1)
+     find_minmax_normalization(gs, val1, val2, inv_val, label_idx);
+    else if (normalize_data == 2)
+     find_zscore_normalization(gs, val1, val2, inv_val, label_idx);
+    
     for (int i = 0; i < gs_size; i++)
     {
         v.push_back(i);
@@ -219,7 +258,7 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
         }
     }
 
-    if (normalize_data)
+    if (normalize_data >= 1)
     {
         for (int i = 0; i < (int)cs.size(); i++)
         {
@@ -228,7 +267,7 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
             for (int j = 0; j < label_idx; j++)
             {
                 float c = (float)cs[i][j];
-                float c_norm = (c - cmin[j]) * inv_cdelta[j];
+                float c_norm = (c - val1[j]) * inv_val[j];
                 val.push_back(c_norm);
             }
             val.push_back((float)cs[i][label_idx]);
@@ -239,7 +278,7 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
             for (int j = 0; j < label_idx; j++)
             {
                 float c = (float)ts[i][j];
-                float c_norm = (c - cmin[j]) * inv_cdelta[j];
+                float c_norm = (c - val1[j]) * inv_val[j];
                 ts[i][j] = c_norm;
             }
         }
@@ -247,8 +286,6 @@ void splitgs(vector<vector<int>> gs, vector<vector<float>>& ts, vector<vector<fl
     }
 
 }
-
-
 
 void print_codes(char* codes_file, vector<vector<int>> codes)
 {

@@ -1,5 +1,6 @@
 
-#include "classifier.h"
+#include "tunables.h"
+
 #define min(a,b) ((a)<(b)?(a):(b))
 
 #ifdef __AVXACC__
@@ -81,155 +82,6 @@ inline void matvec_8by8(float* A, float* b, float* c, float d[8])
 }
 #endif 
 
-void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes)
-{
-
-
-    ofstream scope;
-
-    scope.open(file_name, std::ios_base::app);
-
-
-    scope << "./out/conv_driver.exe"  \
-        << " conv " \
-        << " -n " << predicted_codes[0][0]  /* batch */ \
-        << " -c " << predicted_codes[0][1]  /* input chanels */ \
-        << " -H " << predicted_codes[0][2]  /* height */\
-        << " -W " << predicted_codes[0][3]  /* width */ \
-        << " -k " << predicted_codes[0][4]  /* output channels */ \
-        << " -y " << predicted_codes[0][5]  /* kernel height */ \
-        << " -x " << predicted_codes[0][6]  /* kernel width */ \
-        << " -u " << predicted_codes[0][7]  /* stride h */ \
-        << " -v " << predicted_codes[0][8]  /* stride w */ \
-        << " -l " << predicted_codes[0][9]  /* dilation h */ \
-        << " -j " << predicted_codes[0][10] /* dilation w */ \
-        << " -p " << predicted_codes[0][11] /* padding h */ \
-        << " -q " << predicted_codes[0][12] /* padding w */ \
-        << " -g " << "1" /* group */ \
-        << " -F " << "1" /* forward conv */ \
-        << " -A ";
-
-    for (int j = 0; j < predicted_codes.size() - 1; j++)
-    {
-        for (int i = SEP_IDX; i < predicted_codes[0].size(); i++)
-        {
-            scope << predicted_codes[j][i] << ":";
-        }
-    }
-
-    for (int i = SEP_IDX; i < predicted_codes[0].size() - 1; i++)
-    {
-        scope << predicted_codes[predicted_codes.size() - 1][i] << ":";
-    }
-
-    scope << predicted_codes[predicted_codes.size() - 1][predicted_codes[0].size() - 1];
-
-    scope << " >> pred_results.txt" << endl;
-
-}
-
-bool tunable_is_valid(vector<int> vec, vector<int> par)
-{
-
-    int n = vec[0];
-    int c = vec[1];
-    int hi = vec[2];
-    int wi = vec[3];
-    int k = vec[4];
-    int y = vec[5];
-    int x = vec[6];
-    int stride_h = vec[7];
-    int stride_w = vec[8];
-    int dilation_h = vec[9];
-    int dilation_w = vec[10];
-    int pad_h = vec[11];
-    int pad_w = vec[12];
-    int ho = vec[13];
-    int wo = vec[14];
-    int group = 1;
-
-    int gemm_m_per_block = par[15];
-    int gemm_n_per_block = par[16];
-    int gemm_k_per_block = par[17];
-    int nxb = par[41];
-    int nxe = par[42];
-    //int elapsed_time = par[43];
-    int tensor_b_thread_lengths[4];
-
-
-    //printf("%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
-    //    n, c, hi, wi, k, y, x, stride_h, stride_w, dilation_h, dilation_w,
-    //    pad_h, pad_w, ho, wo);
-
-    for (int i = 0; i < 4; i++)
-    {
-        tensor_b_thread_lengths[i] = par[i + 33];
-    }
-
-
-    // Print out
-    // printf(";%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
-    //    gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, wave_tile_m, wave_tile_n, wave_tile_k,
-    //    wave_step_m, wave_step_n, wave_repeat_m, wave_repeat_n); (15 - 24)
-
-    //for (int i = 0; i < tensor_a_thread_lengths.size(); i++)  (25,26,27,28)
-    //{
-    //    printf(",%d", tensor_a_thread_lengths[i]);
-    //}
-    //for (int i = 0; i < tensor_a_cluster_lengths.size(); i++) (29,30,31,32)
-    //{
-    //    printf(",%d", tensor_a_cluster_lengths[i]);
-    //}
-    //for (int i = 0; i < tensor_b_thread_lengths.size(); i++)  (33,34,35,36)
-    //{
-    //    printf(",%d", tensor_b_thread_lengths[i]);
-    //}
-    //for (int i = 0; i < tensor_b_cluster_lengths.size(); i++)  (37,38,39,40)
-    //{
-    //    printf(",%d", tensor_b_cluster_lengths[i]);
-    //}
-
-    //printf(",%d", nxb); (41)
-    //printf(",%d", nxe); (42)
-    //printf(",%d\n", (int)(1000 * elapsed_time));
-
-    int b = nxe == 0 ? (ho * wo) : ((ho * wo + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
-
-    int gemm_m = k / group;
-    int gemm_n = n * b;
-    int gemm_k = (c / group) * y * x;
-
-    // support pad to modulo, hence only check when nxe is 0
-    if ((gemm_n % gemm_n_per_block != 0) || (gemm_m % gemm_m_per_block != 0) ||
-        (gemm_k % gemm_k_per_block != 0))
-    {
-        return false;
-    }
-
-    if (gemm_n_per_block % nxb != 0) {
-        //printf("tunable_is_valid false: gemm_n_per_block%tunable->nxb!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
-        return false;
-    }
-
-    if (n % (gemm_n_per_block / nxb) != 0) {
-        //printf("tunable_is_valid false: n%(gemm_n_per_block/tunable->nxb)!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
-        return false;
-    }
-
-    if ((nxe == 0) && (b % nxb != 0)) {
-        return false;
-    }
-
-    if (nxe == 0) {
-        if ((x != 1) || (y != 1) || (stride_h != 1) || (stride_w != 1) || (dilation_h != 1) || (dilation_w != 1) || (pad_h != 0) || (pad_w != 0)) {
-            return false;
-        }
-    }
-    if (tensor_b_thread_lengths[1] > 1 && (x != 1 || y != 1)) {
-        return false;
-    }
-    return true;
-}
 void remove(vector<tuple<float, int, int> > & v)
 {
     
@@ -272,7 +124,7 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
             kernel_parameters.push_back((int)codebook[i][j]);
         }
 
-        if (tunable_is_valid(codes, kernel_parameters))
+        if (1) // (tunable_is_valid(codes, kernel_parameters))
         {
 #ifndef __AVXACC__
             float dist = 0.;
@@ -319,7 +171,17 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
         {
             predicted_codes.push_back((int)codebook[idx][j]);
         }
-        predicted_codes_set.push_back(predicted_codes);
+
+        if (tunable_is_valid(predicted_codes))
+        {
+            predicted_codes_set.push_back(predicted_codes);
+        }
+        else
+        {
+            // add one more because kernel parameters were not tunable
+            if (candidates < dist_table.size()-1) 
+                candidates++; 
+        }
     }
 
     return(predicted_codes_set);
@@ -347,7 +209,7 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
             kernel_parameters.push_back((int)codebook[i][j]);
         }
 
-        if (tunable_is_valid(codes, kernel_parameters))
+        if (1)
         {
 #ifndef __AVXACC__
             float dist = 0.;
@@ -395,7 +257,17 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
         {
             predicted_codes.push_back((int)codebook[idx][j]);
         }
-        predicted_codes_set.push_back(predicted_codes);
+
+        if (tunable_is_valid(predicted_codes))
+        {
+            predicted_codes_set.push_back(predicted_codes);
+        }
+        else
+        {
+            // add one more because kernel parameters were not tunable
+            if (candidates < dist_table.size()-1) 
+                candidates++; 
+        }
     }
 
     return(predicted_codes_set);
@@ -451,7 +323,7 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
             kernel_parameters.push_back((int)codebook[i][j]);
         }
 
-        if (tunable_is_valid(codes, kernel_parameters))
+        if (1)
         {
 #ifndef __AVXACC__
             vector<float> vec_difference, vec_partialf, vec_partialb;
@@ -497,7 +369,6 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
     remove(dist_table);
 
     int candidates = min(no_of_candidates,dist_table.size());
-
     for (int k = 0; k < candidates; k++)
     {
         vector<int> predicted_codes;
@@ -513,7 +384,17 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
         {
             predicted_codes.push_back((int)codebook[idx][j]);
         }
-        predicted_codes_set.push_back(predicted_codes);
+
+        if (tunable_is_valid(predicted_codes))
+        {
+            predicted_codes_set.push_back(predicted_codes);
+        }
+        else
+        {
+           // add one more because kernel parameters were not tunable
+            if (candidates < dist_table.size()-1) 
+                candidates++; 
+        }
     }
 
     return(predicted_codes_set);
