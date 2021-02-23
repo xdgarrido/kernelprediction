@@ -72,7 +72,7 @@ void find_zscore_normalization(vector<vector<int>> ts, vector<float>& mu, vector
         float mean = 0.f;
         for (int i = 0; i < (int)ts.size(); i++)
         {
-            vec[i] = ts[i][j];
+            vec[i] = (float) ts[i][j];
             mean += vec[i];
         }
         mean = mean/((float)ts.size());
@@ -86,7 +86,7 @@ void find_zscore_normalization(vector<vector<int>> ts, vector<float>& mu, vector
         float sigma = sqrt(sigma2);
         mu_col[j]    = mean;
         sigma_col[j] = sigma;
-        inv_sigma_col[j] = 1./sigma;
+        inv_sigma_col[j] = (float) (1./sigma);
     }
 
     for (int j = 0; j < label_idx; j++)

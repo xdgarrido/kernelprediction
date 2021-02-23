@@ -78,7 +78,7 @@ int split_batch_size(vector<int> vec)
         }
 
         assert(splited_n * image_size < size_4g && n % splited_n == 0);
-        return n / splited_n;
+        return ((int)(n / splited_n));
     }
 
 #if 0  // original tunable_is_valid from conv driver

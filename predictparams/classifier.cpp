@@ -154,7 +154,7 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
     //  remove duplicates in terms of labels
     remove(dist_table);
 
-    int candidates = min(no_of_candidates,dist_table.size());
+    int candidates = min(no_of_candidates,(int)dist_table.size());
 
     for (int k = 0; k < candidates; k++)
     {
@@ -240,7 +240,7 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
     //  remove duplicates in terms of labels
     remove(dist_table);
 
-    int candidates = min(no_of_candidates,dist_table.size());
+    int candidates = min(no_of_candidates,(int)dist_table.size());
 
     for (int k = 0; k < candidates; k++)
     {
@@ -368,7 +368,7 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
     //  remove duplicates in terms of labels
     remove(dist_table);
 
-    int candidates = min(no_of_candidates,dist_table.size());
+    int candidates = min(no_of_candidates,(int)dist_table.size());
     for (int k = 0; k < candidates; k++)
     {
         vector<int> predicted_codes;

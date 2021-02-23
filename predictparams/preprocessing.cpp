@@ -25,7 +25,7 @@
  *
  *******************************************************************************/
 #include "preprocessing.h"
-vector<float> normalize_codes(vector<int> codes, vector<vector<float>> norm, bool normalize)
+vector<float> normalize_codes(vector<int> codes, vector<vector<float>> norm, int normalize)
 {
     int codes_size = (int) codes.size();
     vector<float> ncodes(codes_size);
