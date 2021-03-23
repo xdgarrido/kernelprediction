@@ -517,23 +517,25 @@ void print_batch_file(const std::string& file_name, vector<vector<int>> predicte
         << " -q " << predicted_codes[0][12] /* padding w */ \
         << " -g " << "1" /* group */ \
         << " -F " << "1" /* forward conv */ \
-        << " -T " << (int) predicted_codes.size() \
+        << " -N " << (int) predicted_codes.size() \
         << " -A ";
 
+    int elapsed_time = -1;
     for (int j = 0; j < predicted_codes.size() - 1; j++)
     {
         for (int i = SEP_IDX; i < predicted_codes[0].size(); i++)
         {
             scope << predicted_codes[j][i] << ":";
         }
+        scope << elapsed_time << ":"; // unknown elapse time
     }
 
-    for (int i = SEP_IDX; i < predicted_codes[0].size() - 1; i++)
+    for (int i = SEP_IDX; i < predicted_codes[0].size(); i++)
     {
         scope << predicted_codes[predicted_codes.size() - 1][i] << ":";
     }
-
-    scope << predicted_codes[predicted_codes.size() - 1][predicted_codes[0].size() - 1];
+    scope << elapsed_time ; // unknown elapse time
+    
 
     scope << " >> pred_results.txt" << endl;
     }
