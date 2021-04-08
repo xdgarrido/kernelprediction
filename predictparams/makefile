@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-I. -O2 -D__AVXACC__ -DLINUX -march=native -mavx
+CFLAGS=-I. -O2 -D__AVXACC__ -DLINUX -march=native -mavx -pthread
 LIBS= -lm
 
 default: predictparams

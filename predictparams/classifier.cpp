@@ -88,7 +88,7 @@ void remove(vector<tuple<float, int, int> > & v)
     for (int i = 0; i < v.size(); i++)
     {
         vector<int> equals;
-        for (int j = i+1; j < v.size(); j++)
+        for (int j = i+1; j < v.size()-1; j++)
         {
 
             if (get<2>(v[i]) == get<2>(v[j]))
@@ -99,11 +99,28 @@ void remove(vector<tuple<float, int, int> > & v)
         for (int k = 0; k < equals.size(); k++)
         {
             v.erase(v.begin() + equals[k]);
+
             for (int l = k + 1; l < equals.size(); l++)
             {
                 equals[l] -= 1;
             }
             
+        }
+    }    
+}
+void adjust(vector<tuple<float, int, int> > & v)
+{
+    
+    for (int i = 0; i < v.size(); i++)
+    {
+        if (get<2>(v[i]) == -1) continue;
+        for (int j = i+1; j < v.size(); j++)
+        {
+
+            if (get<2>(v[i]) == get<2>(v[j]))
+             {
+              get<2>(v[j]) = -1;
+            }
         }
     }    
 }
@@ -118,14 +135,6 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
 
     for (int i = 0; i < codebook_size; i++)
     {
-        vector<int> kernel_parameters;
-        for (int j = 0; j < codebook_dim; j++)
-        {
-            kernel_parameters.push_back((int)codebook[i][j]);
-        }
-
-        if (1) // (tunable_is_valid(codes, kernel_parameters))
-        {
 #ifndef __AVXACC__
             float dist = 0.;
             for (int j = 0; j < normalized_codes.size() - 1; j++)
@@ -144,15 +153,12 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
 #endif
             int label = quant_labels[i];
             dist_table.push_back(make_tuple(Delta_alpha_beta, i, label));
-        }
-        else
-        {
-            Delta_alpha_beta = numeric_limits<float>::max();
-        }
+ 
     }
     sort(dist_table.begin(), dist_table.end());
     //  remove duplicates in terms of labels
-    remove(dist_table);
+    if (no_of_candidates > 1)
+       remove(dist_table);
 
     int candidates = min(no_of_candidates,(int)dist_table.size());
 
@@ -203,14 +209,6 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
 
     for (int i = 0; i < codebook_size; i++)
     {
-        vector<int> kernel_parameters;
-        for (int j = 0; j < codebook_dim; j++)
-        {
-            kernel_parameters.push_back((int)codebook[i][j]);
-        }
-
-        if (1)
-        {
 #ifndef __AVXACC__
             float dist = 0.;
             for (int j = 0; j < normalized_codes.size() - 1; j++)
@@ -229,24 +227,22 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
 #endif
             int label = quant_labels[i];
             dist_table.push_back(make_tuple(Delta_alpha_beta, i, label));
-        }
-        else
-        {
-            Delta_alpha_beta = numeric_limits<float>::max();
-        }
     }
 
     sort(dist_table.begin(), dist_table.end());
     //  remove duplicates in terms of labels
-    remove(dist_table);
+    if (no_of_candidates > 1)
+      remove(dist_table);
 
     int candidates = min(no_of_candidates,(int)dist_table.size());
 
     for (int k = 0; k < candidates; k++)
     {
         vector<int> predicted_codes;
+        
         // add original codes
         int idx = get<1>(dist_table[k]);
+
         for (int j = 0; j < separation_idx; j++)
         {
             predicted_codes.push_back((int)codes[j]);
@@ -317,14 +313,6 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
 #endif 
     for (int i = 0; i < codebook_size; i++)
     {
-        vector<int> kernel_parameters;
-        for (int j = 0; j < codebook_dim; j++)
-        {
-            kernel_parameters.push_back((int)codebook[i][j]);
-        }
-
-        if (1)
-        {
 #ifndef __AVXACC__
             vector<float> vec_difference, vec_partialf, vec_partialb;
             for (int j = 0; j < normalized_codes.size() - 1; j++)
@@ -357,16 +345,12 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
 #endif 
         int label = quant_labels[i];
         dist_table.push_back(make_tuple(Delta_alpha_beta, i, label));
-        }
-        else
-        {
-            Delta_alpha_beta = numeric_limits<float>::max();
-        }
     }
 
     sort(dist_table.begin(), dist_table.end());
     //  remove duplicates in terms of labels
-    remove(dist_table);
+    if (no_of_candidates > 1)
+        remove(dist_table);
 
     int candidates = min(no_of_candidates,(int)dist_table.size());
     for (int k = 0; k < candidates; k++)
@@ -399,4 +383,149 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
 
     return(predicted_codes_set);
 }
+
+static vector<tuple<float, int, int>> table_dist(10000);
+void calcdist(int start_idx, int end_idx, vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes) 
+{
+    for (int i = start_idx; i <= end_idx; i++)
+    {
+#ifndef __AVXACC__
+            vector<float> vec_difference, vec_partialf, vec_partialb;
+            for (int j = 0; j < normalized_codes.size() - 1; j++)
+            {
+                vec_difference.push_back(codebook[i][j] - normalized_codes[j]);
+            }
+            vec_partialb = matvec_mutiply(omegas, vec_difference);
+            vec_partialf = matvec_mutiply(omegas_t, vec_difference);
+            float dist = 0.;
+            for (int j = 0; j < normalized_codes.size() - 1; j++)
+            {
+                dist += vec_partialf[j] * vec_partialb[j];
+            }
+#else
+            for (int l = 0; l < normalized_codes.size() - 1; l++)
+            {
+                ya[l] = normalized_codes[l];
+                yi[l] = codebook[i][l];
+            }
+            float d1[8], d2[8];
+            matvec_8by8(omega, yi, ya, d1);
+            matvec_8by8(omega, yi, ya, d2);
+            float dist = 0.;
+            for (int l = 0; l < normalized_codes.size() - 1; l++)
+            {
+                dist += d1[l] * d2[l];
+            }
+#endif 
+            int label = quant_labels[i];
+            table_dist[i] = make_tuple(dist, i, label);
+    }
+
+}
+
+/**
+ * Spawns n threads
+ */
+void spawnDistThreads(int n, int codebook_size, vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes)
+{
+
+    vector<pair<int, int>> idx(n);
+
+    int threadsize = codebook_size / n;
+
+    int i;
+    for (i = 0; i < n - 1; i++)
+    {
+        idx[i].first = i * threadsize;
+        idx[i].second = (i + 1) * threadsize - 1;
+    }
+    idx[n - 1].first = i * threadsize;
+    idx[n - 1].second = codebook_size - 1;
+
+
+    int start_idx;
+    int end_idx;
+    std::vector<thread> threads(n);
+    // spawn n threads:
+    for (int i = 0; i < n; i++) {
+        start_idx = idx[i].first;
+        end_idx = idx[i].second;
+        threads[i] = thread(calcdist, start_idx, end_idx, codebook, quant_labels, normalized_codes);
+    }
+
+    for (auto& th : threads) {
+        th.join();
+    }
+
+
+}
+
+vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates)
+{
+    int codebook_size = (int)codebook.size();
+    int codebook_dim = (int)codebook[0].size();
+    int codes_size = (int)codes.size();
+    vector <vector<int>> predicted_codes_set;
+    vector<vector<float>> omegas_t(omegas.size(), vector<float>(omegas[0].size()));
+
+    // transpose omegas 
+#ifndef __AVXACC__
+    // Computing transpose of the omegas matrix
+    for (int i = 0; i < omegas.size(); ++i)
+        for (int j = 0; j < omegas[0].size(); ++j) {
+            omegas_t[j][i] = omegas[i][j];
+        }
+#else
+     // Computing transpose of the omegas matrix
+    int k = 0;
+    for (int i = 0; i < 8; ++i)
+        for (int j = 0; j < 8; ++j) {
+            if ((i < omegas.size()) && (j < omegas[0].size()))
+            {
+                omega[8 * i + j] = omegas[i][j];
+                omega_t[8 * j + i] = omegas[i][j];
+            }
+        }
+#endif 
+    const auto processor_count = std::thread::hardware_concurrency();
+
+    spawnDistThreads(processor_count, codebook_size, codebook, quant_labels, normalized_codes);
+
+    sort(table_dist.begin(), table_dist.end());
+
+    if (no_of_candidates > 1)
+        adjust(table_dist);
+
+    int candidates = min(no_of_candidates, (int)table_dist.size());
+    for (int k = 0; k < candidates; k++)
+    {
+        vector<int> predicted_codes;
+        // add original codes
+        int idx = get<1>(table_dist[k]);
+        for (int j = 0; j < separation_idx; j++)
+        {
+            predicted_codes.push_back((int)codes[j]);
+        }
+
+        // add real prediction
+        for (int j = separation_idx; j < codebook_dim; j++)
+        {
+            predicted_codes.push_back((int)codebook[idx][j]);
+        }
+
+        if (tunable_is_valid(predicted_codes))
+        {
+            predicted_codes_set.push_back(predicted_codes);
+        }
+        else
+        {
+            // add one more because kernel parameters were not tunable
+            if (candidates < table_dist.size() - 1)
+                candidates++;
+        }
+    }
+
+    return(predicted_codes_set);
+}
+
 
