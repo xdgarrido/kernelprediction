@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 {
     FILE* fd_in = NULL;
     Args_t repository, * pArgs;
-    char *fname_quant, *fname_cs, *fname_norm, *fname_labels, *fname_scales;
+    char *fname_quant, *fname_cs, *fname_norm, *fname_labels, *fname_scales, *convtype;
     const string  fname_conv("conv.txt");
     enum lvq { VQ=1, GRLVQ=2, GMLVQ=3 };
     vector<vector<float>> lambdas;
@@ -47,21 +47,27 @@ int main(int argc, char** argv)
     fname_labels = pArgs->labels_name;
     fname_scales = pArgs->scales_name;
     fname_cs    = pArgs->cs_name;
+    convtype = pArgs->conv_type;
+
     int number_of_candidates = pArgs->number_of_candidates; 
     int normalized_codebook = pArgs->normalized_codebook;
     string pattern(pArgs->pattern);
+    int kernel_size = pArgs->kernel_size;
 
     string quant_set(fname_quant);
     string cs_set(fname_cs);
     string norm_set(fname_norm);
     string labels_set(fname_labels);
     string scales_set(fname_scales);
+    string conv_type(convtype);
 
     vector<vector<float>> norm  = fread_codes(norm_set);
     vector<vector<float>> qs_codes = fread_codes(quant_set);
     vector<vector<float>> cs_codes = fread_codes(cs_set);
     vector<vector<float>> labels   = fread_codes(labels_set);
     vector<int> quant_labels;
+
+   
 
     int distance_type;
     if (scales_set == "none")
@@ -95,7 +101,7 @@ int main(int argc, char** argv)
         quant_labels.push_back(qs_codes[i][qs_codes[0].size()-1]);
 
 
-         vector<float> codes_complete = expand_codebook(codes, pattern, labels);
+         vector<float> codes_complete = expand_codebook(codes, kernel_size, labels);
          exqs_codes.push_back(codes_complete);
     }
 
@@ -114,7 +120,7 @@ int main(int argc, char** argv)
         vector<float> ncodes = normalize_codes(codes, norm, normalized_codebook);
         
         // build a complete conv parameter space
-        vector<int> codes_complete = expand_codes(codes, pattern, labels);
+        vector<int> codes_complete = expand_codes(codes, kernel_size, labels);
         vector<vector<int>> predicted_codes;
         vector<vector<int>> filtered_predicted_codes;
         
@@ -122,13 +128,13 @@ int main(int argc, char** argv)
         switch (distance_type)
         {
         case VQ:
-            predicted_codes = multiple_predict_parameters(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, number_of_candidates);
+            predicted_codes = multiple_predict_parameters(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, number_of_candidates,conv_type);
             break;
         case GRLVQ:
-            predicted_codes = multiple_predict_parameters_lambdas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, lambdas, number_of_candidates);
+            predicted_codes = multiple_predict_parameters_lambdas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, lambdas, number_of_candidates,conv_type);
             break;
         case GMLVQ:
-            predicted_codes = multiple_predict_parameters_omegas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, omegas, number_of_candidates);
+            predicted_codes = multiple_predict_parameters_omegas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, omegas, number_of_candidates,conv_type);
             break;
         default:
             cout << "invalid selection" << endl;

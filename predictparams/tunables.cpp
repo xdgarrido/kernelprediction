@@ -26,15 +26,7 @@
  *******************************************************************************/
 
 #include "tunables.h"
-static inline int utility_string_to_data_byte(std::string precision)
-{
-    if(precision == "fp32")
-        return 4;
-    if(precision == "fp16" || precision == "bf16")
-        return 2;
-    assert(false);
-    return 1;
-}
+
 int split_batch_size(vector<int> vec)
     {
         int n = vec[0];
@@ -81,129 +73,9 @@ int split_batch_size(vector<int> vec)
         return ((int)(n / splited_n));
     }
 
-#if 0  // original tunable_is_valid from conv driver
-bool tunable_is_valid(const args_t *arg,
-                          const igemm_gtc_tunable_t *tunable,
-                          const driverDataType_t& data_type)
-    {
-        int hi = arg->get_int("in_h");
-        int wi = arg->get_int("in_w");
-        int n = arg->get_int("batchsize");
-        int k = arg->get_int("out_channels");
-        int c = arg->get_int("in_channels");
 
-        int stride_h = arg->get_int("conv_stride_h");
-        int stride_w = arg->get_int("conv_stride_w");
-        int dilation_h = arg->get_int("dilation_h");
-        int dilation_w = arg->get_int("dilation_w");
-        int pad_h = arg->get_int("pad_h");
-        int pad_w = arg->get_int("pad_w");
-        int y = arg->get_int("fil_h");
-        int x = arg->get_int("fil_w");
-        int ho = conv_out_size(hi, pad_h, dilation_h, y, stride_h);
-        int wo = conv_out_size(wi, pad_w, dilation_w, x, stride_w);
-        int group = arg->get_int("group_count");
 
-        assert(c % group == 0 && k % group == 0);
-
-        std::string precision = tunable->precision;
-        //std::cout << std::endl;
-        if(precision == "fp16"){
-            //std::cout << "is same type=" << std::is_same<gpu_data_type, float16>::value << std::endl;
-            if(data_type != driverHalf){
-                return false;
-            }
-        }
-        else if(precision == "fp32"){
-            //std::cout << "is same type=" << std::is_same<gpu_data_type, float>::value << std::endl;
-            if(data_type != driverFloat){
-                return false;
-            }
-        }
-        else
-        {
-            std::cout << std::endl;
-            std::cout << precision << std::endl;
-            return false;
-        }
-        int splits = split_batch_size(arg, tunable);
-        if(splits == 0){
-            printf("image size (c*h*w) is bigger than 4g, which is not supported now\n");
-            return false;
-        }
-        n = n/splits;   // split batch size here
-
-        int gemm_m_per_block         = tunable->gemm_m_per_block;
-        int gemm_n_per_block         = tunable->gemm_n_per_block;
-        int gemm_k_per_block         = tunable->gemm_k_per_block;
-
-        int nxe                      = tunable->nxe;
-        int nxb                      = tunable->nxb;
-        int b                        = nxe == 0 ? (ho * wo) : ((ho * wo + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
-
-        int gemm_m = ((k/group + gemm_m_per_block -1)/gemm_m_per_block) * gemm_m_per_block;
-        int gemm_n                   = n * b;
-        int gemm_k                   = (c / group) * y * x;
-
-        bool unit_conv = (x==1)&&(y==1)&&(stride_h==1)&&(stride_w==1)&&(dilation_h==1)&&(dilation_w==1)&&(pad_h==0)&&(pad_w==0);
-
-        // support pad to modulo, hence only check when nxe is 0
-        if((gemm_n % gemm_n_per_block != 0) || (gemm_m % gemm_m_per_block != 0))
-            return false;
-
-        // if(gemm_k % gemm_k_per_block != 0)
-            // return false;
-
-        if(gemm_n_per_block % tunable->nxb != 0){
-            //printf("tunable_is_valid false: gemm_n_per_block%tunable->nxb!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
-            return false;
-        }
-
-        if(n % (gemm_n_per_block / tunable->nxb) != 0){
-            //printf("tunable_is_valid false: n%(gemm_n_per_block/tunable->nxb)!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
-            return false;
-        }
-
-        if((nxe == 0) && ((b % tunable->nxb != 0) || (gemm_k % gemm_k_per_block != 0))){
-            return false;
-        }
-
-        if((nxe == 0) && !unit_conv){
-            return false;
-        }
-
-        // input vector load limitation, n1b
-        if(tunable->tensor_b_thread_lengths[3] > 1 && (
-            !unit_conv ||
-            unit_conv && (hi * wi) % tunable->tensor_b_thread_lengths[3] != 0)) {
-            return false;
-        }
-
-        // weight vector load limitation, c1e
-        if(tunable->tensor_a_thread_lengths[1] > 1 &&
-                gemm_k % tunable->tensor_a_thread_lengths[1] != 0){
-            return false;
-        }
-
-        // if tb_c1e > 1, only 1x1 case is runable, it can not check gemm_k_padding either.
-        if(tunable->tensor_b_thread_lengths[1] > 1 && ((pad_h !=0 || pad_w != 0)||( x !=1 || y != 1)||(gemm_k % gemm_k_per_block != 0))){
-            return false;
-        }
-
-        // if t_c0 > 1, need to check gemmk per block
-        if(tunable->tensor_b_thread_lengths[0] > 1 && (gemm_k % gemm_k_per_block != 0)){
-            return false;
-        }
-
-        // let's check the next configuration even though this configuration is applicable
-        // if (mayHaveBiggerN1bClusterSize(gemm_m, gemm_n, tunable) )
-            // return(false); 
-
-        return true;
-    }
-#endif 
-
-bool tunable_is_valid(vector<int> vec)
+bool tunable_is_valid_fwd(vector<int> vec)
 {
 
     int n = vec[0];
@@ -345,151 +217,130 @@ bool tunable_is_valid(vector<int> vec)
     return true;
 }
 
-bool tunable_is_valid2(vector<int> vec, vector<int> par)
-{
 
-    
-    int n = vec[0];
-    int c = vec[1];
-    int hi = vec[2];
-    int wi = vec[3];
-    int k = vec[4];
-    int y = vec[5];
-    int x = vec[6];
-    int stride_h = vec[7];
-    int stride_w = vec[8];
-    int dilation_h = vec[9];
-    int dilation_w = vec[10];
-    int pad_h = vec[11];
-    int pad_w = vec[12];
-    int ho = vec[13];
-    int wo = vec[14];
-    int group = 1;
-
-    int gemm_m_per_block = par[15];
-    int gemm_n_per_block = par[16];
-    int gemm_k_per_block = par[17];
-    int nxb = par[41];
-    int nxe = par[42];
-    //int elapsed_time = par[43];
-    int tensor_a_thread_lengths[4];
-    int tensor_b_thread_lengths[4];
-
-
-    //printf("%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
-    //    n, c, hi, wi, k, y, x, stride_h, stride_w, dilation_h, dilation_w,
-    //    pad_h, pad_w, ho, wo);
-
-    for (int i = 0; i < 4; i++)
+bool tunable_is_valid_bwd(vector<int> vec)
     {
-        tensor_a_thread_lengths[i] = par[i + 25];
-    }
+        int n = vec[0];
+        int c = vec[1];
+        int hi = vec[2];
+        int wi = vec[3];
+        int k = vec[4];
+        int y = vec[5];
+        int x = vec[6];
+        int stride_h = vec[7];
+        int stride_w = vec[8];
+        int dilation_h = vec[9];
+        int dilation_w = vec[10];
+        int pad_h = vec[11];
+        int pad_w = vec[12];
+        int ho = vec[13];
+        int wo = vec[14];
+        int group = 1;
 
-    for (int i = 0; i < 4; i++)
-    {
-        tensor_b_thread_lengths[i] = par[i + 33];
-    }
+        int gemm_m_per_block = vec[15];
+        int gemm_n_per_block = vec[16];
+        int gemm_k_per_block = vec[17];
+        int nxb = vec[41];
+        int nxe = vec[42];
+        //int elapsed_time = par[43];
+        int tensor_a_thread_lengths[4];
+        int tensor_b_thread_lengths[4];
 
-    // Data acquisition order from conv_driver
+        for (int i = 0; i < 4; i++)
+        {
+        tensor_a_thread_lengths[i] = vec[i + 25];
+        }
 
-    //printf("%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
-    //    n, c, hi, wi, k, y, x, stride_h, stride_w, dilation_h, dilation_w,
-    //    pad_h, pad_w, ho, wo);
+        for (int i = 0; i < 4; i++)
+        {
+        tensor_b_thread_lengths[i] = vec[i + 33];
+        }
 
-    // printf(";%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
-    //    gemm_m_per_block, gemm_n_per_block, gemm_k_per_block, wave_tile_m, wave_tile_n, wave_tile_k,
-    //    wave_step_m, wave_step_n, wave_repeat_m, wave_repeat_n); (15 - 24)
+        assert(c % group == 0 && k % group == 0);
 
-    //for (int i = 0; i < tensor_a_thread_lengths.size(); i++)  (25,26,27,28)
-    //{
-    //    printf(",%d", tensor_a_thread_lengths[i]);
-    //}
-    //for (int i = 0; i < tensor_a_cluster_lengths.size(); i++) (29,30,31,32)
-    //{
-    //    printf(",%d", tensor_a_cluster_lengths[i]);
-    //}
-    //for (int i = 0; i < tensor_b_thread_lengths.size(); i++)  (33,34,35,36)
-    //{
-    //    printf(",%d", tensor_b_thread_lengths[i]);
-    //}
-    //for (int i = 0; i < tensor_b_cluster_lengths.size(); i++)  (37,38,39,40)
-    //{
-    //    printf(",%d", tensor_b_cluster_lengths[i]);
-    //}
+        
+        int gcd_stride_dilation_h = utility_gcd(stride_h, dilation_h);
+        int gcd_stride_dilation_w = utility_gcd(stride_w, dilation_w);
 
-    //printf(",%d", nxb); (41)
-    //printf(",%d", nxe); (42)
-    //printf(",%d\n", (int)(1000 * elapsed_time));
-    int splits = split_batch_size(vec);
-    if(splits == 0){
-            printf("image size (c*h*w) is bigger than 4g, which is not supported now\n");
+        int y_tilda = stride_h / gcd_stride_dilation_h;
+        int x_tilda = stride_w / gcd_stride_dilation_w;
+
+        int y_dot = utility_integer_divide_ceil(y, y_tilda);
+        int x_dot = utility_integer_divide_ceil(x, x_tilda);
+
+        int h_tilda = ho + utility_integer_divide_ceil(dilation_h * (y - 1), stride_h);
+        int w_tilda = wo + utility_integer_divide_ceil(dilation_w * (x - 1), stride_w);
+
+        int h_tilda_left = utility_integer_divide_floor(
+            utility_max(0, pad_h - dilation_h * (y_tilda - 1)), stride_h);
+        int w_tilda_left = utility_integer_divide_floor(
+            utility_max(0, pad_w - dilation_w * (x_tilda - 1)), stride_w);
+
+        int h_tilda_right = utility_min(
+            h_tilda, utility_integer_divide_ceil(pad_h + hi - 1, stride_h) + 1);
+        int w_tilda_right = utility_min(
+            w_tilda, utility_integer_divide_ceil(pad_w + wi - 1, stride_w) + 1);
+
+        int h_tilda_slice = h_tilda_right - h_tilda_left;
+        int w_tilda_slice = w_tilda_right - w_tilda_left;
+        int num_of_gemm = y_tilda * x_tilda;
+
+       
+        int b = h_tilda_slice * w_tilda_slice;
+        b = (nxe == 0) ? (b) : ((b + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
+        int gemm_n = n * b;
+
+        bool unit_conv = (x==1)&&(y==1)&&(stride_h==1)&&(stride_w==1)&&(dilation_h==1)&&(dilation_w==1)&&(pad_h==0)&&(pad_w==0);
+
+        if(gemm_n%gemm_n_per_block!=0){
+            // printf("tunable_is_valid false:: gemm_n is %d, gemm_n_per_block is %d, gemm_m is %d, gemm_m_per_block is %d\n", gemm_n,gemm_n_per_block,gemm_m,gemm_m_per_block);
             return false;
-    }
-    n = n/splits;   // split batch size here
+        }
 
-
-    int b                        = nxe == 0 ? (ho * wo) : ((ho * wo + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
-
-    int gemm_m = ((k/group + gemm_m_per_block -1)/gemm_m_per_block) * gemm_m_per_block;
-    int gemm_n                   = n * b;
-    int gemm_k                   = (c / group) * y * x;
-
-    bool unit_conv = (x==1)&&(y==1)&&(stride_h==1)&&(stride_w==1)&&(dilation_h==1)&&(dilation_w==1)&&(pad_h==0)&&(pad_w==0);
-
-        // support pad to modulo, hence only check when nxe is 0
-    if((gemm_n % gemm_n_per_block != 0) || (gemm_m % gemm_m_per_block != 0))
-        return false;
-
-        // if(gemm_k % gemm_k_per_block != 0)
-            // return false;
-
-    if(gemm_n_per_block % nxb != 0){
-            //printf("tunable_is_valid false: gemm_n_per_block%tunable->nxb!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
+        if(gemm_n_per_block%nxb!=0){
+            // printf("tunable_is_valid false: gemm_n_per_block%tunable->nxb!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
             return false;
-    }
-
-    if(n % (gemm_n_per_block / nxb) != 0){
-            //printf("tunable_is_valid false: n%(gemm_n_per_block/tunable->nxb)!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
+        }
+        //# ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
+        if(n%(gemm_n_per_block/nxb)!=0){
+            // printf("tunable_is_valid false: n%(gemm_n_per_block/tunable->nxb)!=0, gemm_n_per_block is %d, tunable->nxb is %d\n", gemm_n_per_block, tunable->nxb);
             return false;
-    }
-
-    if((nxe == 0) && ((b % nxb != 0) || (gemm_k % gemm_k_per_block != 0))){
+        }
+        if( (nxe == 0)&& ((h_tilda_slice * w_tilda_slice) % nxb != 0) ){
             return false;
-    }
+        }
+        bool gemm_k_valid = true;
+        for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++){
+            int i_y_tilda = gemm_id / x_tilda;
+            int i_x_tilda = gemm_id % x_tilda;
+            int y_dot_slice = utility_integer_divide_ceil(y - i_y_tilda, y_tilda);
+            int x_dot_slice = utility_integer_divide_ceil(x - i_x_tilda, x_tilda);
 
-    if((nxe == 0) && !unit_conv){
+            int gemm_k = (k / group) * y_dot_slice * x_dot_slice;
+            bool is_gemm_not_empty = gemm_k > 0 && y_dot_slice > 0 && x_dot_slice > 0;
+            if(is_gemm_not_empty){
+                if(gemm_k % gemm_k_per_block != 0)
+                    gemm_k_valid = false;
+            }
+        }
+        if(!gemm_k_valid)
             return false;
-    }
 
-    // input vector load limitation, n1b
-    if(tensor_b_thread_lengths[3] > 1 && (
+        if(nxe == 0 && !unit_conv){
+            return false;
+        }
+
+        // output vector load limitation, n1b
+        if(tensor_b_thread_lengths[3] > 1 && (
             !unit_conv ||
-            unit_conv && (hi * wi) % tensor_b_thread_lengths[3] != 0)) {
+            unit_conv && (ho * wo) % tensor_b_thread_lengths[3] != 0)) {
             return false;
+        }
+
+        return true;
     }
 
-        // weight vector load limitation, c1e
-    if(tensor_a_thread_lengths[1] > 1 &&
-                gemm_k % tensor_a_thread_lengths[1] != 0){
-            return false;
-    }
 
-        // if tb_c1e > 1, only 1x1 case is runable, it can not check gemm_k_padding either.
-    if(tensor_b_thread_lengths[1] > 1 && ((pad_h !=0 || pad_w != 0)||( x !=1 || y != 1)||(gemm_k % gemm_k_per_block != 0))){
-            return false;
-    }
-
-        // if t_c0 > 1, need to check gemmk per block
-    if(tensor_b_thread_lengths[0] > 1 && (gemm_k % gemm_k_per_block != 0)){
-            return false;
-    }
-
-        // let's check the next configuration even though this configuration is applicable
-        // if (mayHaveBiggerN1bClusterSize(gemm_m, gemm_n, tunable) )
-            // return(false); 
-
-    return true;
-}
 void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes)
 {
 

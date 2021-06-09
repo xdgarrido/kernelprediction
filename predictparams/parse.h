@@ -34,9 +34,12 @@ typedef struct Inputs {
 	char *scales_name;
 	char *pattern;
 	char *cs_name;
+	char *conv_type;
 	int number_of_candidates;
+	int kernel_size; 
 	bool verbose;
 	int normalized_codebook;
+	
 } Args_t;
 
 void ParseArgs(int argc, char *argv[], Args_t *p);

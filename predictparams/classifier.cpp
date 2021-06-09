@@ -1,4 +1,3 @@
-
 #include "tunables.h"
 
 #define min(a,b) ((a)<(b)?(a):(b))
@@ -124,7 +123,7 @@ void adjust(vector<tuple<float, int, int> > & v)
         }
     }    
 }
-vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates)
+vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates, string conv_type)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -177,23 +176,38 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
         {
             predicted_codes.push_back((int)codebook[idx][j]);
         }
-
-        if (tunable_is_valid(predicted_codes))
+        if (conv_type == "fwd")
         {
-            predicted_codes_set.push_back(predicted_codes);
+            if (tunable_is_valid_fwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
         }
-        else
+        else if (conv_type == "bwd")
         {
-            // add one more because kernel parameters were not tunable
-            if (candidates < dist_table.size()-1) 
-                candidates++; 
+            if (tunable_is_valid_bwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
         }
     }
 
     return(predicted_codes_set);
 }
 
-vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates)
+vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates, string conv_type)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -254,15 +268,31 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
             predicted_codes.push_back((int)codebook[idx][j]);
         }
 
-        if (tunable_is_valid(predicted_codes))
+        if (conv_type == "fwd")
         {
-            predicted_codes_set.push_back(predicted_codes);
+            if (tunable_is_valid_fwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
         }
-        else
+        else if (conv_type == "bwd")
         {
-            // add one more because kernel parameters were not tunable
-            if (candidates < dist_table.size()-1) 
-                candidates++; 
+            if (tunable_is_valid_bwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
         }
     }
 
@@ -282,7 +312,7 @@ vector<float> matvec_mutiply(vector<vector<float>> M, vector<float> x)
     }
     return(y);
 }
-vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates)
+vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates, string conv_type)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -369,15 +399,31 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
             predicted_codes.push_back((int)codebook[idx][j]);
         }
 
-        if (tunable_is_valid(predicted_codes))
+        if (conv_type == "fwd")
         {
-            predicted_codes_set.push_back(predicted_codes);
+            if (tunable_is_valid_fwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
         }
-        else
+        else if (conv_type == "bwd")
         {
-           // add one more because kernel parameters were not tunable
-            if (candidates < dist_table.size()-1) 
-                candidates++; 
+            if (tunable_is_valid_bwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
         }
     }
 
@@ -460,7 +506,7 @@ void spawnDistThreads(int n, int codebook_size, vector<vector<float>> codebook, 
 
 }
 
-vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates)
+vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates,string conv_type)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -513,15 +559,31 @@ vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vect
             predicted_codes.push_back((int)codebook[idx][j]);
         }
 
-        if (tunable_is_valid(predicted_codes))
+        if (conv_type == "fwd")
         {
-            predicted_codes_set.push_back(predicted_codes);
+            if (tunable_is_valid_fwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < table_dist.size() - 1)
+                    candidates++;
+            }
         }
-        else
+        else if (conv_type == "bwd")
         {
-            // add one more because kernel parameters were not tunable
-            if (candidates < table_dist.size() - 1)
-                candidates++;
+            if (tunable_is_valid_fwd(predicted_codes))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < table_dist.size() - 1)
+                    candidates++;
+            }
         }
     }
 

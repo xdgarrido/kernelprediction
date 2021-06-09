@@ -39,6 +39,8 @@ void Usage(char *program_name)
 	cout << "  -v verbose" << endl;
 	cout << "  -s classifier used (ex: none (euclidian distance, lambdas.csv (weighted euclidian distance), omega.csv (mahalanobis distance) " << endl;
 	cout << "  -c normalized_classifier (1: it is, 0:it isn't)"  << endl;
+	cout << "  -k kernel type :0 (1by1) and 1(nbyn)" << endl;
+	cout << "  -t conv_type: (fwd,bwd,wrw)" << endl;
 	exit(1);
 }
 
@@ -52,12 +54,15 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	char *norm_name = NULL;
 	char *scales_name = NULL;
 	char *pattern = NULL;
+	char *conv_type = NULL;
 	// default names
 	const char* cs_array      = "cs.csv";
 	const char* minmax_array  = "domain.csv";
 	const char* lbls_array    = "labels.csv";
 	const char* scales_array  = "none";
 	const char* pattern_array = "1,1,1,1,1,1,0,0";
+	const char* conv_array = "bwd";
+	int kernel_size = 1;
 	int verbose = 0; 
 	int normalized_codebook = 1; // min-max as default
 	bool error = true;
@@ -94,6 +99,13 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
+		case 't':
+			while (argv[1][nchar] == '\0')
+				nchar++;
+			conv_type = &argv[1][nchar];
+			if (nchar > 2) { argv++; argc--; }
+			error = false;
+			break;
 		case 'm':
 			while (argv[1][nchar] == '\0')
 				nchar++;
@@ -112,6 +124,13 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 			while (argv[1][nchar] == '\0')
 				nchar++;
 			number_of_candidates = atoi(&argv[1][nchar]);
+			if (nchar > 2) { argv++; argc--; }
+			error = false;
+			break;
+		case 'k':
+			while (argv[1][nchar] == '\0')
+				nchar++;
+			kernel_size = atoi(&argv[1][nchar]);
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
@@ -185,6 +204,12 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 
 	}
 
+	if (conv_type == NULL)
+	{
+		conv_type = (char*)malloc(sizeof(conv_array));
+		conv_type = (char*)conv_array;
+
+	}
 	if (pattern == NULL)
 	{
 		pattern = (char*)malloc(sizeof(pattern_array));
@@ -197,11 +222,13 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	p->cs_name = cs_name;
 	p->quant_name = quant_name;
 	p->labels_name = labels_name;
+	p->kernel_size = kernel_size;
 	p->norm_name = norm_name;
 	p->scales_name = scales_name;
 	p->number_of_candidates = number_of_candidates; 
 	p->pattern = pattern;
 	p->verbose = (bool) verbose;
 	p->normalized_codebook = normalized_codebook;
+	p->conv_type = conv_type;
 	
 }

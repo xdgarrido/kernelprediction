@@ -25,10 +25,89 @@
  *
  *******************************************************************************/
 
+#include <string>
+#include <vector>
 #include <assert.h>
 #include "classifier.h"
 
-bool tunable_is_valid(vector<int> vec);
-bool tunable_is_valid2(vector<int> vec, vector<int> par);
+bool tunable_is_valid_fwd(vector<int> vec);
+bool tunable_is_valid_bwd(vector<int> vec);
 void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes);
 int verify_prediction(vector<vector<int>> predicted_codes, vector<int> codes, int separation_idx, int no_of_candidates);
+
+
+template <typename T>
+T utility_gcd(T x, T y)
+{
+    if (x == y || x == 0)
+    {
+        return y;
+    }
+    else if (y == 0)
+    {
+        return x;
+    }
+    else if (x > y)
+    {
+        return utility_gcd(x - y, y);
+    }
+    else
+    {
+        return utility_gcd(x, y - x);
+    }
+}
+
+template <typename T>
+T utility_integer_divide_floor(T x, T y)
+{
+    return x / y;
+}
+
+template <typename T>
+T utility_integer_divide_ceil(T x, T y)
+{
+    return (x + y - 1) / y;
+}
+
+template <typename T>
+T utility_max(T x, T y)
+{
+    return x > y ? x : y;
+}
+
+template <typename T>
+T utility_min(T x, T y)
+{
+    return x < y ? x : y;
+}
+
+static inline std::string
+utility_int_list_to_string(const std::vector<int> list) {
+    std::string enc;
+    for (int i = 0; i < list.size(); i++) {
+        enc.append(std::to_string(list[i]));
+        if (i != (list.size() - 1))
+            enc.append("x");
+    }
+    return enc;
+}
+
+static inline int utility_next_pow2(int n) {
+    if (n == 0)
+        return 1;
+    if ((n & (n - 1)) == 0)
+        return n;
+    while ((n & (n - 1)) > 0)
+        n &= (n - 1);
+    return n << 1;
+}
+
+static inline int utility_string_to_data_byte(std::string precision)
+{
+    if (precision == "fp32")
+        return 4;
+    if (precision == "fp16" || precision == "bf16")
+        return 2;
+    assert(false);
+    return 1;
+}
