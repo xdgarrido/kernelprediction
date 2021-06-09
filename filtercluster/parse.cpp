@@ -39,8 +39,7 @@ void Usage(char *program_name)
 	cout << "  -f 0: naive pnn 1: fast pnn " << endl;
 	cout << "  -m 0: do not apply normalization 1: apply min-max normalization 2: apply z-score normalization" << endl;
 	cout << "  -p number of clusters used for the cs set" << endl;
-	cout << "  -s start index representing dimensions to be removed from input data" << endl;
-	cout << "  -e end index representing dimensions to be removed from input data" << endl;
+	cout << "  -s convolution kernel: (0) 1by1 [default] or (1) nbyn" << endl;
 	cout << "  -d index where the label field start" << endl;
 
 	exit(1);
@@ -52,8 +51,9 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	char *program_name, *in_name=NULL, *ts_name=NULL, *cs_name=NULL, *cs_norm_name=NULL, *lbls_name=NULL, *quant_name=NULL, *no_of_clusters=NULL;
 	int verbose=0, number_of_clusters=1024, clustering_type=1;
 	std::tuple<int, int> removed_dimensions(0,0);
-	int start_idx = 5;
-	int end_idx = 14; 
+	int kernel_size = 0; // 1 by 1 convolution
+	int pattern_idx_1by1[43] = { 1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
+	int pattern_idx_nbyn[43] = { 1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
 	int label_idx = 5;
 	int test_set_size = 1000; 
 	bool error = true;
@@ -143,15 +143,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 		case 's':
 			while (argv[1][nchar] == '\0')
 				nchar++;
-			start_idx = atoi(&argv[1][nchar]);
-			if (nchar > 2) { argv++; argc--; }
-			error = false;
-			break;
-
-		case 'e':
-			while (argv[1][nchar] == '\0')
-				nchar++;
-			end_idx = atoi(&argv[1][nchar]);
+			kernel_size = atoi(&argv[1][nchar]);
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
@@ -229,8 +221,21 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 
 	}
 
-	std::get<0>(removed_dimensions) = start_idx;
-	std::get<1>(removed_dimensions) = end_idx;
+	if (kernel_size == 0) // 1 by 1 
+	{
+		for (int i = 0; i < 43; i++)
+			p->pattern_idx[i] = pattern_idx_1by1[i];
+		// label or class start after idx
+		label_idx = 5;
+	}
+	else // n by n
+	{
+		for (int i = 0; i < 43; i++)
+			p->pattern_idx[i] = pattern_idx_nbyn[i];
+		// label or class start after idx
+		label_idx = 8;
+	}
+	
 
 	// write args on data structure
 	p->in_name = in_name;
@@ -239,7 +244,6 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	p->cs_norm_name = cs_norm_name;
 	p->lbls_name = lbls_name;
 	p->quant_name = quant_name;
-	p->removed_dimensions = removed_dimensions;
 	p->label_idx = label_idx;
 	p->test_set_size = test_set_size;
 	p->verbose = (bool) verbose;

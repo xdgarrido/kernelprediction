@@ -9,8 +9,12 @@ typedef struct Inputs {
 	char *lbls_name;
 	char *quant_name;
 	char *number_of_clusters;
+	// pattern idx has 43 records 
+	// 0...14 = features; 
+	// 15...42 = kernel parameters; 
+	// 43 = elapsed time in microsecs
+	int  pattern_idx[43]; 
 	int  clustering_type;
-	std::tuple<int, int> removed_dimensions;
 	int  label_idx;
 	bool verbose;
 	bool no_clustering;

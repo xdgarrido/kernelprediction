@@ -79,8 +79,6 @@ int main(int argc, char** argv)
 
     test_set_size = pArgs->test_set_size;
     
-    // dimensions removed from input data [begin and end]
-    tuple<int, int> removed_dimensions(pArgs->removed_dimensions);
     
     // dimension where starts the attached label
     int label_idx = pArgs->label_idx;
@@ -110,28 +108,29 @@ int main(int argc, char** argv)
         string substr;
         scope >> line; 
 
-        vector<string> result;
+        vector<string> record;
         stringstream s_stream(line); //create string stream from the string
         while (s_stream.good()) {
             string substr;
             getline(s_stream, substr, ','); //get first string delimited by comma
-            result.push_back(substr);
+            record.push_back(substr);
         }
        
-        // remove unecessary dimensions or features
-        int start = get<0>(removed_dimensions);
-        int end   = get<1>(removed_dimensions);
-
-        for (int i = start; i <= end; i++)
+        // remove unecessary dimensions or features and copy kernel codes representing classes
+        vector<string> compress_record;
+        for (int i = 0; i < record.size(); i++)
         {
-            result.erase(result.begin() + start);
+            if (pArgs->pattern_idx[i] == 1)
+            {
+                compress_record.push_back(record[i]);
+            }
         }
 
        
         vector<int> codes;
-        for (int i = 0; i < result.size(); i++) 
+        for (int i = 0; i < compress_record.size(); i++) 
          {   
-              codes.push_back(atoi(result.at(i).c_str()));
+              codes.push_back(atoi(compress_record.at(i).c_str()));
          }
          // store in global gs codebook
          gs_codes.push_back(codes);
