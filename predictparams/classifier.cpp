@@ -123,7 +123,7 @@ void adjust(vector<tuple<float, int, int> > & v)
         }
     }    
 }
-vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates, string conv_type)
+vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, int no_of_candidates, string conv_type, string precision, string layout)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -178,7 +178,7 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
         }
         if (conv_type == "fwd")
         {
-            if (tunable_is_valid_fwd(predicted_codes))
+            if (tunable_is_valid_fwd(predicted_codes, layout, precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -191,7 +191,7 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
         }
         else if (conv_type == "bwd")
         {
-            if (tunable_is_valid_bwd(predicted_codes))
+            if (tunable_is_valid_bwd(predicted_codes, layout, precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -207,7 +207,7 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
     return(predicted_codes_set);
 }
 
-vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates, string conv_type)
+vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> lambdas, int no_of_candidates, string conv_type, string precision, string layout)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -270,7 +270,7 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
 
         if (conv_type == "fwd")
         {
-            if (tunable_is_valid_fwd(predicted_codes))
+            if (tunable_is_valid_fwd(predicted_codes, layout, precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -283,7 +283,7 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
         }
         else if (conv_type == "bwd")
         {
-            if (tunable_is_valid_bwd(predicted_codes))
+            if (tunable_is_valid_bwd(predicted_codes, layout, precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -312,7 +312,7 @@ vector<float> matvec_mutiply(vector<vector<float>> M, vector<float> x)
     }
     return(y);
 }
-vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates, string conv_type)
+vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates, string conv_type,string precision, string layout)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -401,7 +401,7 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
 
         if (conv_type == "fwd")
         {
-            if (tunable_is_valid_fwd(predicted_codes))
+            if (tunable_is_valid_fwd(predicted_codes,layout,precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -414,7 +414,7 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
         }
         else if (conv_type == "bwd")
         {
-            if (tunable_is_valid_bwd(predicted_codes))
+            if (tunable_is_valid_bwd(predicted_codes,layout,precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -506,7 +506,7 @@ void spawnDistThreads(int n, int codebook_size, vector<vector<float>> codebook, 
 
 }
 
-vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates,string conv_type)
+vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vector<float>> codebook, vector<int> quant_labels, vector<float> normalized_codes, vector<int> codes, int separation_idx, vector<vector<float>> omegas, int no_of_candidates,string conv_type,string precision, string layout)
 {
     int codebook_size = (int)codebook.size();
     int codebook_dim = (int)codebook[0].size();
@@ -561,7 +561,7 @@ vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vect
 
         if (conv_type == "fwd")
         {
-            if (tunable_is_valid_fwd(predicted_codes))
+            if (tunable_is_valid_fwd(predicted_codes,layout,precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -574,7 +574,7 @@ vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vect
         }
         else if (conv_type == "bwd")
         {
-            if (tunable_is_valid_fwd(predicted_codes))
+            if (tunable_is_valid_bwd(predicted_codes,layout,precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }

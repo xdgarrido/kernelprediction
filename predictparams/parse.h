@@ -35,6 +35,8 @@ typedef struct Inputs {
 	char *pattern;
 	char *cs_name;
 	char *conv_type;
+	char* precision;
+	char* layout;
 	int number_of_candidates;
 	int kernel_size; 
 	bool verbose;

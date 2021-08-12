@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 {
     FILE* fd_in = NULL;
     Args_t repository, * pArgs;
-    char *fname_quant, *fname_cs, *fname_norm, *fname_labels, *fname_scales, *convtype;
+    char *fname_quant, *fname_cs, *fname_norm, *fname_labels, *fname_scales, *convtype, *precisiontype, *layouttype;
     const string  fname_conv("conv.txt");
     enum lvq { VQ=1, GRLVQ=2, GMLVQ=3 };
     vector<vector<float>> lambdas;
@@ -48,10 +48,11 @@ int main(int argc, char** argv)
     fname_scales = pArgs->scales_name;
     fname_cs    = pArgs->cs_name;
     convtype = pArgs->conv_type;
+    layouttype = pArgs->layout;
+    precisiontype = pArgs->precision;
 
     int number_of_candidates = pArgs->number_of_candidates; 
     int normalized_codebook = pArgs->normalized_codebook;
-    string pattern(pArgs->pattern);
     int kernel_size = pArgs->kernel_size;
 
     string quant_set(fname_quant);
@@ -60,6 +61,8 @@ int main(int argc, char** argv)
     string labels_set(fname_labels);
     string scales_set(fname_scales);
     string conv_type(convtype);
+    string layout(layouttype);
+    string precision(precisiontype);
 
     vector<vector<float>> norm  = fread_codes(norm_set);
     vector<vector<float>> qs_codes = fread_codes(quant_set);
@@ -128,13 +131,13 @@ int main(int argc, char** argv)
         switch (distance_type)
         {
         case VQ:
-            predicted_codes = multiple_predict_parameters(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, number_of_candidates,conv_type);
+            predicted_codes = multiple_predict_parameters(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, number_of_candidates,conv_type,precision,layout);
             break;
         case GRLVQ:
-            predicted_codes = multiple_predict_parameters_lambdas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, lambdas, number_of_candidates,conv_type);
+            predicted_codes = multiple_predict_parameters_lambdas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, lambdas, number_of_candidates,conv_type,precision,layout);
             break;
         case GMLVQ:
-            predicted_codes = multiple_predict_parameters_omegas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, omegas, number_of_candidates,conv_type);
+            predicted_codes = multiple_predict_parameters_omegas(exqs_codes, quant_labels, ncodes, codes_complete, SEP_IDX, omegas, number_of_candidates,conv_type,precision, layout);
             break;
         default:
             cout << "invalid selection" << endl;

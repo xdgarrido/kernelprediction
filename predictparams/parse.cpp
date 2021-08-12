@@ -28,7 +28,7 @@
 using namespace std;
 void Usage(char *program_name)
 {
-	cout << "Usage is %s [options]" << program_name << endl;
+	cout << program_name << endl;
 	cout << "Options:" << endl;
 	cout << "  -i convolution parameters file name (ex: cs.csv)" << endl;
 	cout << "  -g quantizer file name (ex: quant6000.csv)" << endl;
@@ -39,8 +39,10 @@ void Usage(char *program_name)
 	cout << "  -v verbose" << endl;
 	cout << "  -s classifier used (ex: none (euclidian distance, lambdas.csv (weighted euclidian distance), omega.csv (mahalanobis distance) " << endl;
 	cout << "  -c normalized_classifier (1: it is, 0:it isn't)"  << endl;
-	cout << "  -k kernel type :0 (1by1) and 1(nbyn)" << endl;
+	cout << "  -k kernel type :1 (1by1) and n(nbyn)" << endl;
 	cout << "  -t conv_type: (fwd,bwd,wrw)" << endl;
+	cout << "  -p precision: fp32 (default) or  fp16" << endl;
+	cout << "  -f layout: nhwc (default) or nchw " << endl;
 	exit(1);
 }
 
@@ -53,15 +55,17 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	char *labels_name = NULL;
 	char *norm_name = NULL;
 	char *scales_name = NULL;
-	char *pattern = NULL;
+	char *layout = NULL;
+	char *precision = NULL;
 	char *conv_type = NULL;
 	// default names
 	const char* cs_array      = "cs.csv";
 	const char* minmax_array  = "domain.csv";
 	const char* lbls_array    = "labels.csv";
 	const char* scales_array  = "none";
-	const char* pattern_array = "1,1,1,1,1,1,0,0";
-	const char* conv_array = "bwd";
+	const char* conv_array = "fwd";
+	const char* layout_array = "nhwc";
+	const char* precision_array = "fp32";
 	int kernel_size = 1;
 	int verbose = 0; 
 	int normalized_codebook = 1; // min-max as default
@@ -116,7 +120,14 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 		case 'p':
 			while (argv[1][nchar] == '\0')
 				nchar++;
-			pattern = &argv[1][nchar];
+			precision = &argv[1][nchar];
+			if (nchar > 2) { argv++; argc--; }
+			error = false;
+			break;
+		case 'f':
+			while (argv[1][nchar] == '\0')
+				nchar++;
+			layout = &argv[1][nchar];
 			if (nchar > 2) { argv++; argc--; }
 			error = false;
 			break;
@@ -173,7 +184,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 
 	if (error)
 	{
-		cout << "Bad option %s\n" << argv[1] << endl;;
+		//cout << "Bad option %s\n" << argv[1] << endl;;
 		Usage(program_name);
 	}
 
@@ -210,13 +221,20 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 		conv_type = (char*)conv_array;
 
 	}
-	if (pattern == NULL)
+	
+	if (precision == NULL)
 	{
-		pattern = (char*)malloc(sizeof(pattern_array));
-		pattern = (char*)pattern_array;
+		precision = (char*)malloc(sizeof(precision_array));
+		precision = (char*)precision_array;
 
 	}
 
+	if (layout == NULL)
+	{
+		precision = (char*)malloc(sizeof(layout_array));
+		precision = (char*)layout_array;
+
+	}
 
 	// write args on data structure
 	p->cs_name = cs_name;
@@ -226,9 +244,10 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	p->norm_name = norm_name;
 	p->scales_name = scales_name;
 	p->number_of_candidates = number_of_candidates; 
-	p->pattern = pattern;
 	p->verbose = (bool) verbose;
 	p->normalized_codebook = normalized_codebook;
 	p->conv_type = conv_type;
+	p->precision = precision;
+	p->layout = layout;
 	
 }

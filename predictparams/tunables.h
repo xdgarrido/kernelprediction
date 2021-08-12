@@ -30,8 +30,9 @@
 #include <assert.h>
 #include "classifier.h"
 
-bool tunable_is_valid_fwd(vector<int> vec);
-bool tunable_is_valid_bwd(vector<int> vec);
+bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precision);
+bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precision);
+bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precision);
 void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes);
 int verify_prediction(vector<vector<int>> predicted_codes, vector<int> codes, int separation_idx, int no_of_candidates);
 

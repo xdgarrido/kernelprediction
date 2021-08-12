@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-p 2000 -m 1 -i conv_data.txt  -g quant  -f 1 -n 10000,8000,6000,4000</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-p 2000 -m 1 -i conv.txt  -g quant  -f 1 -n 12000</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

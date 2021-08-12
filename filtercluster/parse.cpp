@@ -28,7 +28,7 @@
 using namespace std;
 void Usage(char *program_name)
 {
-	cout << "Usage is %s [options] :" << program_name << endl;
+	cout << program_name << endl;
 	cout << "Options" << endl;
 	cout << "  -i input file name" << endl;
 	cout << "  -j trainning set file name" << endl;
@@ -40,7 +40,6 @@ void Usage(char *program_name)
 	cout << "  -m 0: do not apply normalization 1: apply min-max normalization 2: apply z-score normalization" << endl;
 	cout << "  -p number of clusters used for the cs set" << endl;
 	cout << "  -s convolution kernel: (0) 1by1 [default] or (1) nbyn" << endl;
-	cout << "  -d index where the label field start" << endl;
 
 	exit(1);
 }
@@ -52,10 +51,10 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	int verbose=0, number_of_clusters=1024, clustering_type=1;
 	std::tuple<int, int> removed_dimensions(0,0);
 	int kernel_size = 0; // 1 by 1 convolution
-	int pattern_idx_1by1[43] = { 1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
-	int pattern_idx_nbyn[43] = { 1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
+	int pattern_idx_1by1[RECORD_LENGTH] = { 1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
+	int pattern_idx_nbyn[RECORD_LENGTH] = { 1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
 	int label_idx = 5;
-	int test_set_size = 1000; 
+	int test_set_size = 2000; 
 	bool error = true;
 	int normalize_data= 1; // min-max by default 
 	char nchar = 2;
@@ -148,14 +147,6 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 			error = false;
 			break;
 
-		case 'd':
-			while (argv[1][nchar] == '\0')
-				nchar++;
-			label_idx = atoi(&argv[1][nchar]);
-			if (nchar > 2) { argv++; argc--; }
-			error = false;
-			break;
-
 		case '?':
 			while (argv[1][nchar] == '\0')
 				nchar++;
@@ -175,7 +166,6 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	
 	if (error)
 	{
-		cout <<  "Bad option %s\n" << argv[1] << endl;
 		Usage(program_name);
 	}
 	// Border bound checking parameters
@@ -223,14 +213,14 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 
 	if (kernel_size == 0) // 1 by 1 
 	{
-		for (int i = 0; i < 43; i++)
+		for (int i = 0; i < RECORD_LENGTH; i++)
 			p->pattern_idx[i] = pattern_idx_1by1[i];
 		// label or class start after idx
 		label_idx = 5;
 	}
 	else // n by n
 	{
-		for (int i = 0; i < 43; i++)
+		for (int i = 0; i < RECORD_LENGTH; i++)
 			p->pattern_idx[i] = pattern_idx_nbyn[i];
 		// label or class start after idx
 		label_idx = 8;

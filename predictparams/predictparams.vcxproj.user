@@ -9,11 +9,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-g quant6000.txt -i cs.txt -n 10 -c 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-g quant12000.csv -i cs.csv -n 1 -c 1 -t fwd -k 1 -f nhwc -p fp32</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-g quant6000.txt -i cs.csv -n 10 -c 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-g quant12000.csv -i cs.csv -n 1 -c 1 -t fwd -k 1 -f nhwc -p fp32</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
