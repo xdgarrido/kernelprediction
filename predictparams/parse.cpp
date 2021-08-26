@@ -231,8 +231,8 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 
 	if (layout == NULL)
 	{
-		precision = (char*)malloc(sizeof(layout_array));
-		precision = (char*)layout_array;
+		layout = (char*)malloc(sizeof(layout_array));
+		layout = (char*)layout_array;
 
 	}
 
