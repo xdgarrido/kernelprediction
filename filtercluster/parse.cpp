@@ -51,8 +51,8 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	int verbose=0, number_of_clusters=1024, clustering_type=1;
 	std::tuple<int, int> removed_dimensions(0,0);
 	int kernel_size = 0; // 1 by 1 convolution
-	int pattern_idx_1by1[RECORD_LENGTH] = { 1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
-	int pattern_idx_nbyn[RECORD_LENGTH] = { 1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
+	int pattern_idx_1by1[RECORD_LENGTH] = { 1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
+	int pattern_idx_nbyn[RECORD_LENGTH] = { 1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
 	int label_idx = 5;
 	int test_set_size = 2000; 
 	bool error = true;

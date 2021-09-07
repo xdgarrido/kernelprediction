@@ -1,7 +1,7 @@
 #include<iostream>
 #include <tuple>
 #include <algorithm>
-#define RECORD_LENGTH 46
+#define RECORD_LENGTH 47
 typedef struct Inputs {
 	char *in_name;
 	char *ts_name;

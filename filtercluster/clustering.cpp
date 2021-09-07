@@ -27,6 +27,7 @@
 
 #include "clustering.h"
 #include "parse.h"
+#include "preprocessing.h"
 
 #ifdef __AVXACC__
 #ifndef LINUX
@@ -276,7 +277,7 @@ int find_minimum_distance(vector<vector<float>> y, vector<tuple<int, float, bool
     return(min_index);
 }
 
-vector<vector<float>> fast_cluster_with_distortion(char* rd_file, vector<vector<float>> ts, vector<int> number_of_clusters, int separation_idx, string quant_fname)
+vector<vector<float>> fast_cluster_with_distortion(char* rd_file, vector<vector<float>> ts, vector<int> number_of_clusters, int separation_idx, string quant_fname, int labels_size)
 {
     int no_of_dimensions = (int)ts[0].size();
     int ts_size = (int)ts.size();
@@ -349,6 +350,17 @@ vector<vector<float>> fast_cluster_with_distortion(char* rd_file, vector<vector<
             });
             string file_name(quant_fname + to_string(number_of_clusters[count]) + ".csv");
             print_quant(file_name, codebook);
+            // collect histogram of classes available in the training set
+            vector<int> hist_quant = labels_histogram(ts, separation_idx, (int)labels_size);
+            string fname_hist("hist" + to_string(number_of_clusters[count]) + ".txt");
+            ofstream hist(fname_hist);
+            // record quantizer histogram 
+
+            for (int i=0; i < (int)labels_size-1; i++)
+            {
+                hist << hist_quant[i] << endl;
+            }
+            hist << hist_quant[(int)labels_size - 1];
             count++;
         }
 
@@ -367,7 +379,7 @@ vector<vector<float>> fast_cluster_with_distortion(char* rd_file, vector<vector<
     return(codebook);
 }
 
-vector<vector<float>>  cluster_with_distortion(char* rd_file, vector<vector<float>> ts, vector<int> number_of_clusters, int separation_idx, string quant_fname)
+vector<vector<float>>  cluster_with_distortion(char* rd_file, vector<vector<float>> ts, vector<int> number_of_clusters, int separation_idx, string quant_fname,int labels_size)
 {
 
     ofstream graph(rd_file);
@@ -495,6 +507,18 @@ vector<vector<float>>  cluster_with_distortion(char* rd_file, vector<vector<floa
                 }
                 string file_name(quant_fname + to_string(number_of_clusters[count]) + ".csv");
                 print_quant(file_name, codebook);
+                
+                // collect histogram of classes available in the training set
+                vector<int> hist_quant = labels_histogram(ts, separation_idx, (int)labels_size);
+                string fname_hist("hist" + to_string(number_of_clusters[count]) + ".txt");
+                ofstream hist(fname_hist);
+                // record quantizer histogram 
+
+                for (int i=0; i < (int)labels_size-1; i++)
+                {
+                hist << hist_quant[i] << endl;
+                }
+                hist << hist_quant[(int)labels_size - 1];
                 count++;
             }
             j++;

@@ -158,11 +158,11 @@ int main(int argc, char** argv)
     vector<vector<float>>  codebook;
      
     if (clustering_type == 1)
-        codebook = fast_cluster_with_distortion((char*)fname_graph.c_str(), ts_codes, number_of_clusters, label_idx, fname_quant);
+        codebook = fast_cluster_with_distortion((char*)fname_graph.c_str(), ts_codes, number_of_clusters, label_idx, fname_quant, (int)labels.size());
     else
-        codebook = cluster_with_distortion((char*)fname_graph.c_str(), ts_codes, number_of_clusters, label_idx, fname_quant);
+        codebook = cluster_with_distortion((char*)fname_graph.c_str(), ts_codes, number_of_clusters, label_idx, fname_quant, (int)labels.size());
 
-
+#if 0
     // collect histogram of classes available in the training set
     vector<int> hist_quant = labels_histogram(ts_codes, label_idx, (int)labels.size());
 
@@ -174,6 +174,6 @@ int main(int argc, char** argv)
         hist << hist_quant[i] << endl;
     }
     hist << hist_quant[(int)labels.size() - 1];
-   
+ #endif   
     return 0;
 }

@@ -710,9 +710,9 @@ void print_batch_file(const std::string& file_name, vector<vector<int>> predicte
         << " -F " << "1" /* forward conv */ \
         << " -V 0" /*no verification */ \
         << " -i 5" /* iterations*/ \
-        << " --in_layout_NHWC" \
-        << " --fil_layout_NHWC" \
-        << " --out_layout_NHWC" \
+        << " --in_layout NHWC" \
+        << " --fil_layout NHWC" \
+        << " --out_layout NHWC" \
         << " -N " << (int) predicted_codes.size() \
         << " -A ";
 
