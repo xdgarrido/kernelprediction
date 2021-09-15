@@ -73,7 +73,19 @@ static inline size_t split_batch_size(vector<int> vec, int data_byte)
         
     }
 
-
+static inline int igemm_get_max_gks(int gemm_k, int gemm_k_per_block, int max_log2_splits)
+{
+    if(gemm_k % gemm_k_per_block != 0)
+        return 0;
+    int rem = gemm_k / gemm_k_per_block;
+    // to find the highest power of 2 value that can divide rem
+    // https://www.geeksforgeeks.org/highest-power-of-two-that-divides-a-given-number/
+    int rem_pow2 = rem & (~(rem - 1));
+    int gks = (int)log2(rem_pow2);
+    if(gks > max_log2_splits)
+        gks = max_log2_splits;
+    return gks;
+}
 
 bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precision)
 {
@@ -228,7 +240,13 @@ bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precisio
         //int gemm_m = n * b;
         // int gemm_n = ((k/group + gemm_n_per_block -1)/gemm_n_per_block) * gemm_n_per_block;
         //int gemm_n = k / group;
-        //int gemm_k = (c / group) * y * x;
+        int max_log2_splits = 3;
+        //int max_split_num = 0;
+        int max_split_num = gemm_k_global_split == 0 ?
+                0 : igemm_get_max_gks(c / group, gemm_k_per_block, max_log2_splits);
+
+        if ((power_split > -1) && (power_split > max_split_num ))
+           return false;
 
         // support pad to modulo, hence only check when nxe is 0
         //if((gemm_n % gemm_n_per_block != 0) || (gemm_m % gemm_m_per_block != 0))

@@ -39,7 +39,7 @@ void Usage(char *program_name)
 	cout << "  -f 0: naive pnn 1: fast pnn " << endl;
 	cout << "  -m 0: do not apply normalization 1: apply min-max normalization 2: apply z-score normalization" << endl;
 	cout << "  -p number of clusters used for the cs set" << endl;
-	cout << "  -s convolution kernel: (0) 1by1 [default] or (1) nbyn" << endl;
+	cout << "  -s convolution kernel size: (1) 1by1 [default] or (n) nbyn" << endl;
 
 	exit(1);
 }
@@ -50,7 +50,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 	char *program_name, *in_name=NULL, *ts_name=NULL, *cs_name=NULL, *cs_norm_name=NULL, *lbls_name=NULL, *quant_name=NULL, *no_of_clusters=NULL;
 	int verbose=0, number_of_clusters=1024, clustering_type=1;
 	std::tuple<int, int> removed_dimensions(0,0);
-	int kernel_size = 0; // 1 by 1 convolution
+	int kernel_size = 1; // 1 by 1 convolution
 	int pattern_idx_1by1[RECORD_LENGTH] = { 1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
 	int pattern_idx_nbyn[RECORD_LENGTH] = { 1,1,1,1,1,0,0,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 };
 	int label_idx = 5;
@@ -211,7 +211,7 @@ void ParseArgs(int argc, char *argv[], Args_t *p)
 
 	}
 
-	if (kernel_size == 0) // 1 by 1 
+	if (kernel_size == 1) // 1 by 1 
 	{
 		for (int i = 0; i < RECORD_LENGTH; i++)
 			p->pattern_idx[i] = pattern_idx_1by1[i];

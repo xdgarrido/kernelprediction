@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     FILE* fd_in = NULL;
     Args_t repository, * pArgs;
     char *fname_quant, *fname_cs, *fname_norm, *fname_labels, *fname_scales, *convtype, *precisiontype, *layouttype;
-    const string  fname_conv("conv.txt");
+    const string  fname_conv("elapsed.sh");
     enum lvq { VQ=1, GRLVQ=2, GMLVQ=3 };
     vector<vector<float>> lambdas;
     vector<vector<float>> omegas;
