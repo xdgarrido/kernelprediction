@@ -73,16 +73,22 @@ int main(int argc, char** argv)
    
 
     int distance_type;
-    if (scales_set == "none")
+    size_t found_vq = scales_set.find("none");
+    size_t found_grlvq = scales_set.find("lambdas");
+    size_t found_gmlvq = scales_set.find("omega");
+
+
+    if (found_vq == 0)
     {
         distance_type = VQ;
     }
-    else if (scales_set == "lambdas.csv")
+    
+    if (found_grlvq == 0)
     {
         distance_type = GRLVQ;
         lambdas = fread_codes(scales_set);
     }
-    else if (scales_set == "omega.csv")
+    if (found_gmlvq == 0)
     {
         distance_type = GMLVQ;
         omegas = fread_codes(scales_set);
@@ -155,7 +161,7 @@ int main(int argc, char** argv)
             }
         }
 #endif 
-        print_batch_file(fname_conv, predicted_codes);
+        print_batch_file(fname_conv, predicted_codes, conv_type, precision, layout);
 
         int val = verify_prediction(predicted_codes, codes_complete, SEP_IDX, number_of_candidates);
 

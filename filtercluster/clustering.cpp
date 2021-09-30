@@ -134,7 +134,7 @@ tuple<int, float, bool> find_nearest_neighbor(vector<vector<float>> y, int a, in
     int y_size = Aj;
     tuple<int, float, bool> q;
 
-    get<0>(q) = 0;
+    get<0>(q) = -1;
     get<1>(q) = numeric_limits<float>::max();
     get<2>(q) = false;
 

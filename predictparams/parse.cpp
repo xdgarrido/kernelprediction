@@ -38,7 +38,6 @@ void Usage(char *program_name)
 	cout << "  -n number of predictors" << endl;
 	cout << "  -v verbose" << endl;
 	cout << "  -s classifier used (ex: none (euclidian distance, lambdas.csv (weighted euclidian distance), omega.csv (mahalanobis distance) " << endl;
-	cout << "  -c normalized_classifier (1: it is, 0:it isn't)"  << endl;
 	cout << "  -k kernel type :1 (1by1) and n(nbyn)" << endl;
 	cout << "  -t conv_type: (fwd,bwd,wrw)" << endl;
 	cout << "  -p precision: fp32 (default) or  fp16" << endl;

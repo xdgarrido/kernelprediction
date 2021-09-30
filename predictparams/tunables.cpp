@@ -495,6 +495,14 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
             }
         }
         else if (tensor_layout == "nhwc") {
+            int max_log2_splits = 3;
+            //int max_split_num = 0;
+            int max_split_num = gemm_k_global_split == 0 ?
+                0 : igemm_get_max_gks(c / group, gemm_k_per_block, max_log2_splits);
+
+            if ((power_split > -1) && (power_split > max_split_num ))
+            return false;
+            
             if (tensor_a_thread_lengths[1] == 1) {
                 ;   // if output k 1, indicate padded k support
             }
@@ -699,8 +707,9 @@ bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precisio
 }
 
 
-void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes)
+void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes, string conv_type, string precision, string layout)
 {
+    int conv_idx = 1; 
 
     if (predicted_codes.size() != 0)
     {
@@ -708,6 +717,21 @@ void print_batch_file(const std::string& file_name, vector<vector<int>> predicte
 
     scope.open(file_name, std::ios_base::app);
 
+    if (conv_type == "fwd")
+    {
+        conv_idx = 1;
+    }
+    else if (conv_type == "bwd")
+    {
+        conv_idx = 2;
+    }
+    else if (conv_type == "wrw")
+    {
+        conv_idx = 4;
+    }
+    
+    string fmt(layout);
+    transform(fmt.begin(), fmt.end(), fmt.begin(), ::toupper);
 
     scope << "./out/conv_driver.exe"  \
         << " conv " \
@@ -725,12 +749,12 @@ void print_batch_file(const std::string& file_name, vector<vector<int>> predicte
         << " -p " << predicted_codes[0][11] /* padding h */ \
         << " -q " << predicted_codes[0][12] /* padding w */ \
         << " -g " << "1" /* group */ \
-        << " -F " << "1" /* forward conv */ \
+        << " -F " << conv_idx /* forward conv */ \
         << " -V 0" /*no verification */ \
         << " -i 5" /* iterations*/ \
-        << " --in_layout NHWC" \
-        << " --fil_layout NHWC" \
-        << " --out_layout NHWC" \
+        << " --in_layout " << fmt \
+        << " --fil_layout " << fmt \
+        << " --out_layout " << fmt \
         << " -N " << (int) predicted_codes.size() \
         << " -A ";
 
