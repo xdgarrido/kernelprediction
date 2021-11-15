@@ -540,7 +540,10 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
                     if (gemm_k_global_split) {
                         assert(false);
                     }
-                    else {
+                    else {int gemm_k_global_split      = tunable->gemm_k_global_split;
+        int gemmk_blocks             = 1 << gemm_k_global_split;
+
+        int n_per_block = n >> gemm_k_global_split;
                         if ((c / group) % utility_gcd(gemm_n_per_block, vector_store == 0 ? 16 : vector_store) != 0)
                             return false;
                     }
@@ -575,16 +578,18 @@ bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precisio
     int gemm_k_per_block = vec[17];
     //int nxb = vec[41];
     //int nxe = vec[42];
-    int power_split = vec[43];
-    int gemm_k_global_split = 0;
-    if (power_split == -1)
+    
+    int grid = vec[43];
+    int gemm_k_global_split=0;
+    if (grid == -1)
     {
         gemm_k_global_split = 0;
     }
     else
     {
-        gemm_k_global_split = 1 << power_split;
+        gemm_k_global_split = grid;
     }
+    
     int merge_e = vec[44];
     int tensor_a_pass_through = vec[45];
     int vector_store = 0;
@@ -614,6 +619,11 @@ bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precisio
         tensor_b_cluster_lengths[i] = vec[i + 37];
     }
 
+    int nxb = vec[41] == 0 ? 1 : vec[41];
+    int b  = vec[42] == 0 ? (ho * wo) : ((ho * wo + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
+    int data_byte = utility_string_to_data_byte(precision);
+
+
     assert(c % group == 0 && k % group == 0);
 
     size_t splits = split_batch_size(vec, utility_string_to_data_byte(precision));
@@ -624,15 +634,7 @@ bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precisio
     n = n / ((int)splits);   // split batch size here
     
     int gemmk_blocks = 1 << gemm_k_global_split;
-
-    if (n % gemmk_blocks != 0) {
-        //return false;
-    }
-    int nxb = vec[41] == 0 ? 1 : vec[41];
-    int b = vec[42] == 0 ? (ho * wo) : ((ho * wo + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
-    int data_byte = utility_string_to_data_byte(precision);
     int n_per_block = n >> gemm_k_global_split;
-
     int gemm_n = (c / group) * y * x;
     int gemm_k = n * b;
 

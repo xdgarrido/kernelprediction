@@ -202,6 +202,19 @@ vector<vector<int>> multiple_predict_parameters(vector<vector<float>> codebook, 
                     candidates++;
             }
         }
+        else if (conv_type == "wrw")
+        {
+            if (tunable_is_valid_wrw(predicted_codes, layout, precision))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
+        }
     }
 
     return(predicted_codes_set);
@@ -293,6 +306,21 @@ vector<vector<int>> multiple_predict_parameters_lambdas(vector<vector<float>> co
                 if (candidates < dist_table.size() - 1)
                     candidates++;
             }
+            
+        }
+        else if (conv_type == "wrw")
+        {
+            if (tunable_is_valid_wrw(predicted_codes, layout, precision))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
+            
         }
     }
 
@@ -415,6 +443,19 @@ vector<vector<int>> multiple_predict_parameters_omegas(vector<vector<float>> cod
         else if (conv_type == "bwd")
         {
             if (tunable_is_valid_bwd(predicted_codes,layout,precision))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < dist_table.size() - 1)
+                    candidates++;
+            }
+        }
+        else if (conv_type == "wrw")
+        {
+            if (tunable_is_valid_wrw(predicted_codes,layout,precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }
@@ -575,6 +616,19 @@ vector<vector<int>>  multiple_predict_parameters_omegas_with_threads(vector<vect
         else if (conv_type == "bwd")
         {
             if (tunable_is_valid_bwd(predicted_codes,layout,precision))
+            {
+                predicted_codes_set.push_back(predicted_codes);
+            }
+            else
+            {
+                // add one more because kernel parameters were not tunable
+                if (candidates < table_dist.size() - 1)
+                    candidates++;
+            }
+        }
+        else if (conv_type == "wrw")
+        {
+            if (tunable_is_valid_wrw(predicted_codes,layout,precision))
             {
                 predicted_codes_set.push_back(predicted_codes);
             }

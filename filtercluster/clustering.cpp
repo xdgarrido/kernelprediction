@@ -341,7 +341,8 @@ vector<vector<float>> fast_cluster_with_distortion(char* rd_file, vector<vector<
                     codebook[i].push_back(y[i][j]);
                 }
             }
-
+            // perform GLA iterations
+            // gla(ts, codebook, 0.001f, 5);
             sort(codebook.begin(), codebook.end(),
             [](const std::vector<float>& x, const std::vector<float>& y) 
             { 
@@ -505,6 +506,8 @@ vector<vector<float>>  cluster_with_distortion(char* rd_file, vector<vector<floa
                         codebook[i].push_back(y[i][j]);
                     }
                 }
+                // perform GLA iterations
+                // gla(ts, codebook, 0.001f, 5);
                 string file_name(quant_fname + to_string(number_of_clusters[count]) + ".csv");
                 print_quant(file_name, codebook);
                 
@@ -538,4 +541,150 @@ vector<vector<float>>  cluster_with_distortion(char* rd_file, vector<vector<floa
     }
 
     return(codebook);
+}
+
+void gla(vector<vector<float>> ts, vector<vector<float>>& codebook, float epsilon, int number_of_iterations)
+{
+
+    int ts_size = (int) ts.size();
+    int codebook_size = (int) codebook.size();
+    vector<int> hist(codebook_size, 0);
+    vector<vector<float>> centroids(codebook);
+    int dim = (int)codebook[0].size() - 1;
+
+    float Dist = 0;
+    for (int i = 0; i < ts_size; i++)
+    {
+        float d_old = FLT_MAX;
+        for (int j = 0; j < codebook_size; j++)
+        {
+
+            if (ts[i][dim] == codebook[j][dim])
+            {
+#ifndef LINUX
+                __declspec(align(64)) float x[8] = { 0,0,0,0,0,0,0,0 };
+                __declspec(align(64)) float y[8] = { 0,0,0,0,0,0,0,0 };
+#else
+                float x[8] __attribute__((aligned(64)));
+                float y[8] __attribute__((aligned(64)));
+#endif
+                for (int l = 0; l < dim; l++)
+                {
+                    x[l] = ts[i][l];
+                    y[l] = codebook[j][l];
+                }
+                float d_new = compute_distance(x, y);
+                if (d_new < d_old)
+                {
+                    d_old = d_new;
+                }
+
+            }
+
+
+        }
+        Dist += d_old;
+    }
+    float Dist_old = Dist / ((float)dim * ts_size);
+    float ratio;
+    for (int j = 0; j < codebook_size; j++)
+    {
+        for (int l = 0; l < dim + 1; l++)
+        {
+            centroids[j][l] = 0;
+        }
+        hist[j] = 0;
+    }
+    int iter = 0;
+    cout << endl << "iter =" << iter << " Dist =" << Dist_old << endl;
+    do {
+        for (int i = 0; i < ts_size; i++)
+        {
+            float d_old = FLT_MAX;
+            int index = -1;
+            for (int j = 0; j < codebook_size; j++)
+            {
+
+                if (ts[i][dim] == codebook[j][dim])
+                {
+#ifndef LINUX
+                    __declspec(align(64)) float x[8] = { 0,0,0,0,0,0,0,0 };
+                    __declspec(align(64)) float y[8] = { 0,0,0,0,0,0,0,0 };
+#else
+                    float x[8] __attribute__((aligned(64)));
+                    float y[8] __attribute__((aligned(64)));
+#endif
+                    for (int l = 0; l < dim; l++)
+                    {
+                        x[l] = ts[i][l];
+                        y[l] = codebook[j][l];
+                    }
+                    float d_new = compute_distance(x, y);
+                    if (d_new < d_old)
+                    {
+                        d_old = d_new;
+                        index = j;
+
+                    }
+
+                }
+            }
+            if (index != -1)
+            {
+            for (int l = 0; l < dim; l++)
+            {
+                centroids[index][l] += ts[i][l];
+            }
+            hist[index] += 1;
+            }
+        }
+        for (int j = 0; j < codebook_size; j++)
+        {
+            for (int l = 0; l < dim; l++)
+            {
+                codebook[j][l] = centroids[j][l]/((float) hist[j]);
+                centroids[j][l] = 0;
+            }
+            hist[j] = 0;
+        }
+        Dist = 0.;
+        for (int i = 0; i < ts_size; i++)
+        {
+            float d_old = FLT_MAX;
+            for (int j = 0; j < codebook_size; j++)
+            {
+
+                if (ts[i][dim] == codebook[j][dim])
+                {
+#ifndef LINUX
+                    __declspec(align(64)) float x[8] = { 0,0,0,0,0,0,0,0 };
+                    __declspec(align(64)) float y[8] = { 0,0,0,0,0,0,0,0 };
+#else
+                    float x[8] __attribute__((aligned(64)));
+                    float y[8] __attribute__((aligned(64)));
+#endif
+                    for (int l = 0; l < dim; l++)
+                    {
+                        x[l] = ts[i][l];
+                        y[l] = codebook[j][l];
+                    }
+                    float d_new = compute_distance(x, y);
+                    if (d_new < d_old)
+                    {
+                        d_old = d_new;
+                    }
+
+                }
+            }
+            Dist += d_old;
+        }
+        float Dist_new = Dist / ((float)dim * ts_size);
+        ratio = abs(Dist_old - Dist_new) / Dist_new;
+        Dist_old = Dist_new;
+        iter++;
+        cout << "iter =" << iter << " Dist =" << Dist_old << endl; 
+    } while ((ratio > epsilon) && (iter < number_of_iterations));
+
+
+
 }

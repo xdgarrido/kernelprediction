@@ -174,7 +174,7 @@ int main(int argc, char** argv)
     vector<int> wi_v{ 176, 256, 352, 426, 512, 640, 854, 1280, 1920, 2560, 3840 };// video width
     vector<int> hi_v{ 144, 240, 288, 256, 360, 480, 512, 720, 1080, 1440, 2160 }; // video height
     vector<int> k{ 32, 64, 96, 128, 224, 256, 320, 384, 512, 768, 1024, 1536, 1824, 2048, 3072, 4096 }; // output channels
-    vector<int> k_v{ 1, 2, 4, 8, 12, 16 };
+    vector<int> k_v{ 16 };
     int y=1;
     int x=1;
     int stride_h=1;
@@ -186,7 +186,7 @@ int main(int argc, char** argv)
     //int ho;
     //int wo;
     int group = 1;
-
+#if 1
     for (int id1 = 0; id1 < n.size(); id1++)
     {
         for (int id2 = 0; id2 < hi_wi.size(); id2++)
@@ -216,7 +216,7 @@ int main(int argc, char** argv)
             }
         }
     }
-
+#endif 
     for (int id1 = 0; id1 < n_v.size(); id1++)
     {
         for (int id2 = 0; id2 < wi_v.size(); id2++)
