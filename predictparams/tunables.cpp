@@ -540,10 +540,7 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
                     if (gemm_k_global_split) {
                         assert(false);
                     }
-                    else {int gemm_k_global_split      = tunable->gemm_k_global_split;
-        int gemmk_blocks             = 1 << gemm_k_global_split;
-
-        int n_per_block = n >> gemm_k_global_split;
+                    else {
                         if ((c / group) % utility_gcd(gemm_n_per_block, vector_store == 0 ? 16 : vector_store) != 0)
                             return false;
                     }
@@ -632,6 +629,7 @@ bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precisio
         return false;
     }
     n = n / ((int)splits);   // split batch size here
+
     
     int gemmk_blocks = 1 << gemm_k_global_split;
     int n_per_block = n >> gemm_k_global_split;
