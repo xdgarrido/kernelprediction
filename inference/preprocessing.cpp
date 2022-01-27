@@ -26,7 +26,7 @@
  *******************************************************************************/
 #include "preprocessing.h"
 
-static inline size_t conv_out_size_x(size_t in_size, size_t pad, size_t dilation,
+static inline size_t conv_out_size(size_t in_size, size_t pad, size_t dilation,
     size_t ksize, size_t stride) {
     return (in_size + 2 * pad - dilation * (ksize - 1) - 1) / stride + 1;
 }
@@ -117,8 +117,8 @@ vector<int> expand_codes(vector<int> codes, int kernel_size, vector<vector<float
         int dilation_h = codes[7];
         int pad_w = codes[8];
         int pad_h = codes[8];
-        int ho = (int)conv_out_size_x((size_t)hi, (size_t)pad_h, (size_t)dilation_h, (size_t)y, (size_t)stride_h);
-        int wo = (int)conv_out_size_x((size_t)wi, (size_t)pad_w, (size_t)dilation_w, (size_t)x, (size_t)stride_w);
+        int ho = (int)conv_out_size((size_t)hi, (size_t)pad_h, (size_t)dilation_h, (size_t)y, (size_t)stride_h);
+        int wo = (int)conv_out_size((size_t)wi, (size_t)pad_w, (size_t)dilation_w, (size_t)x, (size_t)stride_w);
         excodes.push_back(n);
         excodes.push_back(c);
         excodes.push_back(hi);  

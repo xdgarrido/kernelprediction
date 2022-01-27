@@ -27,65 +27,6 @@
 
 #include "tunables.h"
 
-static inline size_t split_batch_size_x(vector<int> vec, int data_byte)
-    {
-        int n = vec[0];
-        int c = vec[1];
-        int hi = vec[2];
-        int wi = vec[3];
-        int k = vec[4];
-        int y = vec[5];
-        int x = vec[6];
-        int stride_h = vec[7];
-        int stride_w = vec[8];
-        int dilation_h = vec[9];
-        int dilation_w = vec[10];
-        int pad_h = vec[11];
-        int pad_w = vec[12];
-        int ho = vec[13];
-        int wo = vec[14];
-        int group = 1;
-        
-        // int data_byte = utility_string_to_data_byte(tunable->precision);
-        size_t image_size_input = static_cast<size_t>(c) * hi * wi * data_byte;
-        size_t image_size_output = static_cast<size_t>(k) * ho * wo * data_byte;
-        size_t size_4g = 0xffffffffUL;
-        if (image_size_input >= size_4g || image_size_output >= size_4g)
-            return 0;
-
-        size_t image_size = image_size_input >= image_size_output ? image_size_input : image_size_output;
-        size_t splited_n = size_4g / image_size;
-
-        // round up splits, we must match
-        // 1. splited_n * image_size < size_4g
-        // 2. n % splited_n == 0
-        // if(splited_n >= n)
-        //     return 1;
-        assert(splited_n != 0);
-        while (splited_n >= 1) {
-            // printf("n:%d, splited_n:%d\n", n, splited_n);
-            if (n % splited_n == 0 && splited_n * image_size < size_4g)
-                break;
-            splited_n--;
-        }
-        assert(splited_n * image_size < size_4g&& n% splited_n == 0);
-        return static_cast<size_t>(n) / splited_n;
-        
-    }
-
-static inline int igemm_get_max_gks_x(int gemm_k, int gemm_k_per_block, int max_log2_splits)
-{
-    if(gemm_k % gemm_k_per_block != 0)
-        return 0;
-    int rem = gemm_k / gemm_k_per_block;
-    // to find the highest power of 2 value that can divide rem
-    // https://www.geeksforgeeks.org/highest-power-of-two-that-divides-a-given-number/
-    int rem_pow2 = rem & (~(rem - 1));
-    int gks = (int)log2(rem_pow2);
-    if(gks > max_log2_splits)
-        gks = max_log2_splits;
-    return gks;
-}
 
 bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precision)
 {
@@ -171,7 +112,7 @@ bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precisio
     //printf(",%d", nxe); (42)
     //printf(",%d\n", (int)(1000 * elapsed_time));
 
-    size_t splits = split_batch_size_x(vec, utility_string_to_data_byte_x(precision));
+    size_t splits = splitbatchsize(vec, utility_string_to_data_byte(precision));
    // if (splits == 0) {
    //     printf("image size (c*h*w) is bigger than 4g, which is not supported now\n");
    //     return false;
@@ -243,7 +184,7 @@ bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precisio
         int max_log2_splits = 3;
         //int max_split_num = 0;
         int max_split_num = gemm_k_global_split == 0 ?
-                0 : igemm_get_max_gks_x(c / group, gemm_k_per_block, max_log2_splits);
+                0 : igemm_get_max_gks(c / group, gemm_k_per_block, max_log2_splits);
 
         if ((power_split > -1) && (power_split > max_split_num ))
            return false;
@@ -299,7 +240,7 @@ bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precisio
                         return false;
                 }
                 else {
-                    if ((k / group) % utility_gcd_x(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
+                    if ((k / group) % utility_gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
                         return false;
                 }
             }
@@ -315,7 +256,7 @@ bool tunable_is_valid_fwd(vector<int> vec, string tensor_layout, string precisio
                     assert(false);
                 }
                 else {
-                    if ((k / group) % utility_gcd_x(gemm_n_per_block, vector_store == 0 ? 16 : vector_store) != 0)
+                    if ((k / group) % utility_gcd(gemm_n_per_block, vector_store == 0 ? 16 : vector_store) != 0)
                         return false;
                 }
             }
@@ -406,34 +347,34 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
 
     assert(c % group == 0 && k % group == 0);
 
-    size_t splits = split_batch_size_x(vec, utility_string_to_data_byte_x(precision));
+    size_t splits = splitbatchsize(vec, utility_string_to_data_byte(precision));
     if (splits == 0) {
         printf("image size (c*h*w) is bigger than 4g, which is not supported now\n");
         return false;
     }
     n = n / ((int)splits);   // split batch size here
 
-    int gcd_stride_dilation_h = utility_gcd_x(stride_h, dilation_h);
-    int gcd_stride_dilation_w = utility_gcd_x(stride_w, dilation_w);
+    int gcd_stride_dilation_h = utility_gcd(stride_h, dilation_h);
+    int gcd_stride_dilation_w = utility_gcd(stride_w, dilation_w);
 
     int y_tilda = stride_h / gcd_stride_dilation_h;
     int x_tilda = stride_w / gcd_stride_dilation_w;
 
-    int y_dot = utility_integer_divide_ceil_x(y, y_tilda);
-    int x_dot = utility_integer_divide_ceil_x(x, x_tilda);
+    int y_dot = utility_integer_divide_ceil(y, y_tilda);
+    int x_dot = utility_integer_divide_ceil(x, x_tilda);
 
-    int h_tilda = ho + utility_integer_divide_ceil_x(dilation_h * (y - 1), stride_h);
-    int w_tilda = wo + utility_integer_divide_ceil_x(dilation_w * (x - 1), stride_w);
+    int h_tilda = ho + utility_integer_divide_ceil(dilation_h * (y - 1), stride_h);
+    int w_tilda = wo + utility_integer_divide_ceil(dilation_w * (x - 1), stride_w);
 
-    int h_tilda_left = utility_integer_divide_floor_x(
-            utility_max_x(0, pad_h - dilation_h * (y_tilda - 1)), stride_h);
-    int w_tilda_left = utility_integer_divide_floor_x(
-            utility_max_x(0, pad_w - dilation_w * (x_tilda - 1)), stride_w);
+    int h_tilda_left = utility_integer_divide_floor(
+            utility_max(0, pad_h - dilation_h * (y_tilda - 1)), stride_h);
+    int w_tilda_left = utility_integer_divide_floor(
+            utility_max(0, pad_w - dilation_w * (x_tilda - 1)), stride_w);
 
-    int h_tilda_right = utility_min_x(
-            h_tilda, utility_integer_divide_ceil_x(pad_h + hi - 1, stride_h) + 1);
-    int w_tilda_right = utility_min_x(
-            w_tilda, utility_integer_divide_ceil_x(pad_w + wi - 1, stride_w) + 1);
+    int h_tilda_right = utility_min(
+            h_tilda, utility_integer_divide_ceil(pad_h + hi - 1, stride_h) + 1);
+    int w_tilda_right = utility_min(
+            w_tilda, utility_integer_divide_ceil(pad_w + wi - 1, stride_w) + 1);
 
     int h_tilda_slice = h_tilda_right - h_tilda_left;
     int w_tilda_slice = w_tilda_right - w_tilda_left;
@@ -470,8 +411,8 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
             for (int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++) {
                 int i_y_tilda = gemm_id / x_tilda;
                 int i_x_tilda = gemm_id % x_tilda;
-                int y_dot_slice = utility_integer_divide_ceil_x(y - i_y_tilda, y_tilda);
-                int x_dot_slice = utility_integer_divide_ceil_x(x - i_x_tilda, x_tilda);
+                int y_dot_slice = utility_integer_divide_ceil(y - i_y_tilda, y_tilda);
+                int x_dot_slice = utility_integer_divide_ceil(x - i_x_tilda, x_tilda);
 
                 int gemm_k = (k / group) * y_dot_slice * x_dot_slice;
                 bool is_gemm_not_empty = gemm_k > 0 && y_dot_slice > 0 && x_dot_slice > 0;
@@ -498,7 +439,7 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
             int max_log2_splits = 3;
             //int max_split_num = 0;
             int max_split_num = gemm_k_global_split == 0 ?
-                0 : igemm_get_max_gks_x(c / group, gemm_k_per_block, max_log2_splits);
+                0 : igemm_get_max_gks(c / group, gemm_k_per_block, max_log2_splits);
 
             if ((power_split > -1) && (power_split > max_split_num ))
             return false;
@@ -525,7 +466,7 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
                             return false;
                     }
                     else {
-                        if ((c / group) % utility_gcd_x(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
+                        if ((c / group) % utility_gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
                             return false;
                     }
                 }
@@ -541,7 +482,7 @@ bool tunable_is_valid_bwd(vector<int> vec, string tensor_layout, string precisio
                         assert(false);
                     }
                     else {
-                        if ((c / group) % utility_gcd_x(gemm_n_per_block, vector_store == 0 ? 16 : vector_store) != 0)
+                        if ((c / group) % utility_gcd(gemm_n_per_block, vector_store == 0 ? 16 : vector_store) != 0)
                             return false;
                     }
                 }
@@ -618,12 +559,12 @@ bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precisio
 
     int nxb = vec[41] == 0 ? 1 : vec[41];
     int b  = vec[42] == 0 ? (ho * wo) : ((ho * wo + nxb - 1) / nxb) * nxb;   // pad to nxb modulo when nxe != 0
-    int data_byte = utility_string_to_data_byte_x(precision);
+    int data_byte = utility_string_to_data_byte(precision);
 
 
     assert(c % group == 0 && k % group == 0);
 
-    size_t splits = split_batch_size_x(vec, utility_string_to_data_byte_x(precision));
+    size_t splits = splitbatchsize(vec, utility_string_to_data_byte(precision));
     if (splits == 0) {
         printf("image size (c*h*w) is bigger than 4g, which is not supported now\n");
         return false;
@@ -709,7 +650,7 @@ bool tunable_is_valid_wrw(vector<int> vec, string tensor_layout, string precisio
 
 void print_batch_file(const std::string& file_name, vector<vector<int>> predicted_codes, string conv_type, string precision, string layout)
 {
-    igemm_gtc_tunable_t_x* tunable = new (igemm_gtc_tunable_t_x);
+    igemm_gtc_tunable_t* tunable = new (igemm_gtc_tunable_t);
 
     int conv_idx = 1; 
 
@@ -733,7 +674,7 @@ void print_batch_file(const std::string& file_name, vector<vector<int>> predicte
     }
     
     vec2tunable(predicted_codes[0], layout, precision,conv_type,tunable);
-    cout << "kernel name :" << encode_kernel_name(tunable) << endl; 
+    //cout << "kernel name :" << encode_kernel_name(tunable) << endl; 
 
     string fmt(layout);
     transform(fmt.begin(), fmt.end(), fmt.begin(), ::toupper);

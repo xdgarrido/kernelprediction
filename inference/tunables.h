@@ -85,10 +85,10 @@ typedef struct {
     int vector_store;
     int gemm_k_global_split;
     int merge_e;
-} igemm_gtc_tunable_t_x;
+} igemm_gtc_tunable_t;
 
 template <typename T>
-T utility_gcd_x(T x, T y)
+T utility_gcd(T x, T y)
 {
     if (x == y || x == 0)
     {
@@ -100,40 +100,40 @@ T utility_gcd_x(T x, T y)
     }
     else if (x > y)
     {
-        return utility_gcd_x(x - y, y);
+        return utility_gcd(x - y, y);
     }
     else
     {
-        return utility_gcd_x(x, y - x);
+        return utility_gcd(x, y - x);
     }
 }
 
 template <typename T>
-T utility_integer_divide_floor_x(T x, T y)
+T utility_integer_divide_floor(T x, T y)
 {
     return x / y;
 }
 
 template <typename T>
-T utility_integer_divide_ceil_x(T x, T y)
+T utility_integer_divide_ceil(T x, T y)
 {
     return (x + y - 1) / y;
 }
 
 template <typename T>
-T utility_max_x(T x, T y)
+T utility_max(T x, T y)
 {
     return x > y ? x : y;
 }
 
 template <typename T>
-T utility_min_x(T x, T y)
+T utility_min(T x, T y)
 {
     return x < y ? x : y;
 }
 
 static inline std::string
-utility_int_list_to_string_x(const std::vector<int> list) {
+utility_int_list_to_string(const std::vector<int> list) {
     std::string enc;
     for (int i = 0; i < list.size(); i++) {
         enc.append(std::to_string(list[i]));
@@ -143,7 +143,7 @@ utility_int_list_to_string_x(const std::vector<int> list) {
     return enc;
 }
 
-static inline int utility_next_pow2_x(int n) {
+static inline int utility_next_pow2(int n) {
     if (n == 0)
         return 1;
     if ((n & (n - 1)) == 0)
@@ -153,7 +153,7 @@ static inline int utility_next_pow2_x(int n) {
     return n << 1;
 }
 
-static inline int utility_string_to_data_byte_x(std::string precision)
+static inline int utility_string_to_data_byte(std::string precision)
 {
     if (precision == "fp32")
         return 4;
@@ -162,9 +162,69 @@ static inline int utility_string_to_data_byte_x(std::string precision)
     assert(false);
     return 1;
 }
+static inline int igemm_get_max_gks(int gemm_k, int gemm_k_per_block, int max_log2_splits)
+{
+    if(gemm_k % gemm_k_per_block != 0)
+        return 0;
+    int rem = gemm_k / gemm_k_per_block;
+    // to find the highest power of 2 value that can divide rem
+    // https://www.geeksforgeeks.org/highest-power-of-two-that-divides-a-given-number/
+    int rem_pow2 = rem & (~(rem - 1));
+    int gks = (int)log2(rem_pow2);
+    if(gks > max_log2_splits)
+        gks = max_log2_splits;
+    return gks;
+}
+
+static inline size_t splitbatchsize(vector<int> vec, int data_byte)
+    {
+        int n = vec[0];
+        int c = vec[1];
+        int hi = vec[2];
+        int wi = vec[3];
+        int k = vec[4];
+        int y = vec[5];
+        int x = vec[6];
+        int stride_h = vec[7];
+        int stride_w = vec[8];
+        int dilation_h = vec[9];
+        int dilation_w = vec[10];
+        int pad_h = vec[11];
+        int pad_w = vec[12];
+        int ho = vec[13];
+        int wo = vec[14];
+        int group = 1;
+        
+        // int data_byte = utility_string_to_data_byte(tunable->precision);
+        size_t image_size_input = static_cast<size_t>(c) * hi * wi * data_byte;
+        size_t image_size_output = static_cast<size_t>(k) * ho * wo * data_byte;
+        size_t size_4g = 0xffffffffUL;
+        if (image_size_input >= size_4g || image_size_output >= size_4g)
+            return 0;
+
+        size_t image_size = image_size_input >= image_size_output ? image_size_input : image_size_output;
+        size_t splited_n = size_4g / image_size;
+
+        // round up splits, we must match
+        // 1. splited_n * image_size < size_4g
+        // 2. n % splited_n == 0
+        // if(splited_n >= n)
+        //     return 1;
+        assert(splited_n != 0);
+        while (splited_n >= 1) {
+            // printf("n:%d, splited_n:%d\n", n, splited_n);
+            if (n % splited_n == 0 && splited_n * image_size < size_4g)
+                break;
+            splited_n--;
+        }
+        assert(splited_n * image_size < size_4g&& n% splited_n == 0);
+        return static_cast<size_t>(n) / splited_n;
+        
+    }
+
 
 static inline std::string
-encode_kernel_name(const igemm_gtc_tunable_t_x *tunable) {
+encode_kernel_name(const igemm_gtc_tunable_t *tunable) {
     int gcn_arch = 908; // hardwired to MI100's
     auto tensor_layout = tunable->tensor_layout;
     auto gemm_m_per_block = tunable->gemm_m_per_block;
@@ -264,10 +324,10 @@ encode_kernel_name(const igemm_gtc_tunable_t_x *tunable) {
     }
 
     kernel_name +=
-        "ta" + utility_int_list_to_string_x(tensor_a_thread_lengths) + "_" +
-        utility_int_list_to_string_x(tensor_a_cluster_lengths) + "_" +
-        "tb" + utility_int_list_to_string_x(tensor_b_thread_lengths) + "_" +
-        utility_int_list_to_string_x(tensor_b_cluster_lengths);
+        "ta" + utility_int_list_to_string(tensor_a_thread_lengths) + "_" +
+        utility_int_list_to_string(tensor_a_cluster_lengths) + "_" +
+        "tb" + utility_int_list_to_string(tensor_b_thread_lengths) + "_" +
+        utility_int_list_to_string(tensor_b_cluster_lengths);
     // printf("[%s]\n",kernel_name.c_str());
     if (tensor_a_pass_through)
         kernel_name += std::string("_pta");
@@ -293,7 +353,7 @@ encode_kernel_name(const igemm_gtc_tunable_t_x *tunable) {
 
 #define KERNEL_PARAMETER_DIMENSION SEP_IDX
 
-static inline void vec2tunable(vector<int> vec, string tensor_layout, string precision, string direction, igemm_gtc_tunable_t_x *tunable)
+static inline void vec2tunable(vector<int> vec, string tensor_layout, string precision, string direction, igemm_gtc_tunable_t *tunable)
 {
     
     tunable->gemm_m_per_block = vec[0+ KERNEL_PARAMETER_DIMENSION];

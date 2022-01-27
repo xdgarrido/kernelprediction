@@ -30,7 +30,7 @@
 int main(int argc, char** argv)
 {
     FILE* fd_in = NULL;
-    const string  fname_conv("elapsed.sh");
+    const string  fname_conv("elapsed");
  
     int number_of_candidates = 1; 
     int normalized_codebook = 1;
@@ -45,11 +45,11 @@ int main(int argc, char** argv)
         exqs_codes_bwd, quant_labels_bwd, omegas_bwd, norm_bwd, labels_bwd,
         exqs_codes_wrw, quant_labels_wrw, omegas_wrw, norm_wrw, labels_wrw);
 
-    string conv_type("fwd");
+    string conv_type("bwd");
     string layout("nhwc");
     string precision("fp32");
 
-    vector<vector<float>> cs_codes = fread_codes("csfwd.csv");
+    vector<vector<float>> cs_codes = fread_codes("csbwd.csv");
     
    
     int count_zeros = 0;
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
             vector<float> ncodes = normalize_codes(codes, norm_bwd, normalized_codebook);
             // build a complete conv parameter space
             codes_complete = expand_codes(codes, kernel_size, labels_bwd);
-            predicted_codes = predicted_codes = multiple_predict_parameters_omegas(exqs_codes_bwd, quant_labels_bwd, ncodes, codes_complete, SEP_IDX, omegas_bwd, number_of_candidates, conv_type, precision, layout);
+            predicted_codes = multiple_predict_parameters_omegas(exqs_codes_bwd, quant_labels_bwd, ncodes, codes_complete, SEP_IDX, omegas_bwd, number_of_candidates, conv_type, precision, layout);
         }
         else
         {
@@ -92,13 +92,14 @@ int main(int argc, char** argv)
             vector<float> ncodes = normalize_codes(codes, norm_wrw, normalized_codebook);
             // build a complete conv parameter space
             codes_complete = expand_codes(codes, kernel_size, labels_wrw);
-            predicted_codes = predicted_codes = multiple_predict_parameters_omegas(exqs_codes_wrw, quant_labels_wrw, ncodes, codes_complete, SEP_IDX, omegas_wrw, number_of_candidates, conv_type, precision, layout);
+            predicted_codes = multiple_predict_parameters_omegas(exqs_codes_wrw, quant_labels_wrw, ncodes, codes_complete, SEP_IDX, omegas_wrw, number_of_candidates, conv_type, precision, layout);
         }
         clock_t tend = clock();
         double diff = static_cast<double>(tend - tstart);
         acc_time += diff;
 
-        print_batch_file(fname_conv, predicted_codes, conv_type, precision, layout);
+        string fname = fname_conv + "_" + conv_type + ".sh";
+        print_batch_file(fname, predicted_codes, conv_type, precision, layout);
 
         int val = verify_prediction(predicted_codes, codes_complete, SEP_IDX, number_of_candidates);
 
